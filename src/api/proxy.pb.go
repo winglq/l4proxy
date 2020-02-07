@@ -24,143 +24,413 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-type CreateConnectionRequest struct {
+type CreateClientRequest struct {
 	DisplayName          string   `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	PublicPort           int32    `protobuf:"varint,2,opt,name=public_port,json=publicPort,proto3" json:"public_port,omitempty"`
-	InternalPort         int32    `protobuf:"varint,3,opt,name=internal_port,json=internalPort,proto3" json:"internal_port,omitempty"`
+	InternalPort         int32    `protobuf:"varint,2,opt,name=internal_port,json=internalPort,proto3" json:"internal_port,omitempty"`
+	PublicPort           int32    `protobuf:"varint,3,opt,name=public_port,json=publicPort,proto3" json:"public_port,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *CreateConnectionRequest) Reset()         { *m = CreateConnectionRequest{} }
-func (m *CreateConnectionRequest) String() string { return proto.CompactTextString(m) }
-func (*CreateConnectionRequest) ProtoMessage()    {}
-func (*CreateConnectionRequest) Descriptor() ([]byte, []int) {
+func (m *CreateClientRequest) Reset()         { *m = CreateClientRequest{} }
+func (m *CreateClientRequest) String() string { return proto.CompactTextString(m) }
+func (*CreateClientRequest) ProtoMessage()    {}
+func (*CreateClientRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_58b4a54be18c47e6, []int{0}
 }
 
-func (m *CreateConnectionRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CreateConnectionRequest.Unmarshal(m, b)
+func (m *CreateClientRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateClientRequest.Unmarshal(m, b)
 }
-func (m *CreateConnectionRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CreateConnectionRequest.Marshal(b, m, deterministic)
+func (m *CreateClientRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateClientRequest.Marshal(b, m, deterministic)
 }
-func (m *CreateConnectionRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CreateConnectionRequest.Merge(m, src)
+func (m *CreateClientRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateClientRequest.Merge(m, src)
 }
-func (m *CreateConnectionRequest) XXX_Size() int {
-	return xxx_messageInfo_CreateConnectionRequest.Size(m)
+func (m *CreateClientRequest) XXX_Size() int {
+	return xxx_messageInfo_CreateClientRequest.Size(m)
 }
-func (m *CreateConnectionRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_CreateConnectionRequest.DiscardUnknown(m)
+func (m *CreateClientRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateClientRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_CreateConnectionRequest proto.InternalMessageInfo
+var xxx_messageInfo_CreateClientRequest proto.InternalMessageInfo
 
-func (m *CreateConnectionRequest) GetDisplayName() string {
+func (m *CreateClientRequest) GetDisplayName() string {
 	if m != nil {
 		return m.DisplayName
 	}
 	return ""
 }
 
-func (m *CreateConnectionRequest) GetPublicPort() int32 {
-	if m != nil {
-		return m.PublicPort
-	}
-	return 0
-}
-
-func (m *CreateConnectionRequest) GetInternalPort() int32 {
+func (m *CreateClientRequest) GetInternalPort() int32 {
 	if m != nil {
 		return m.InternalPort
 	}
 	return 0
 }
 
-type CreateConnectionResponse struct {
+func (m *CreateClientRequest) GetPublicPort() int32 {
+	if m != nil {
+		return m.PublicPort
+	}
+	return 0
+}
+
+type Client struct {
 	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	InternalAddress      string   `protobuf:"bytes,2,opt,name=internal_address,json=internalAddress,proto3" json:"internal_address,omitempty"`
-	PublicAddress        string   `protobuf:"bytes,3,opt,name=public_address,json=publicAddress,proto3" json:"public_address,omitempty"`
+	Token                string   `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
+	DisplayName          string   `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	InternalAddress      string   `protobuf:"bytes,4,opt,name=internal_address,json=internalAddress,proto3" json:"internal_address,omitempty"`
+	PublicAddress        string   `protobuf:"bytes,5,opt,name=public_address,json=publicAddress,proto3" json:"public_address,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *CreateConnectionResponse) Reset()         { *m = CreateConnectionResponse{} }
-func (m *CreateConnectionResponse) String() string { return proto.CompactTextString(m) }
-func (*CreateConnectionResponse) ProtoMessage()    {}
-func (*CreateConnectionResponse) Descriptor() ([]byte, []int) {
+func (m *Client) Reset()         { *m = Client{} }
+func (m *Client) String() string { return proto.CompactTextString(m) }
+func (*Client) ProtoMessage()    {}
+func (*Client) Descriptor() ([]byte, []int) {
 	return fileDescriptor_58b4a54be18c47e6, []int{1}
 }
 
-func (m *CreateConnectionResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CreateConnectionResponse.Unmarshal(m, b)
+func (m *Client) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Client.Unmarshal(m, b)
 }
-func (m *CreateConnectionResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CreateConnectionResponse.Marshal(b, m, deterministic)
+func (m *Client) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Client.Marshal(b, m, deterministic)
 }
-func (m *CreateConnectionResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CreateConnectionResponse.Merge(m, src)
+func (m *Client) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Client.Merge(m, src)
 }
-func (m *CreateConnectionResponse) XXX_Size() int {
-	return xxx_messageInfo_CreateConnectionResponse.Size(m)
+func (m *Client) XXX_Size() int {
+	return xxx_messageInfo_Client.Size(m)
 }
-func (m *CreateConnectionResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_CreateConnectionResponse.DiscardUnknown(m)
+func (m *Client) XXX_DiscardUnknown() {
+	xxx_messageInfo_Client.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_CreateConnectionResponse proto.InternalMessageInfo
+var xxx_messageInfo_Client proto.InternalMessageInfo
 
-func (m *CreateConnectionResponse) GetName() string {
+func (m *Client) GetName() string {
 	if m != nil {
 		return m.Name
 	}
 	return ""
 }
 
-func (m *CreateConnectionResponse) GetInternalAddress() string {
+func (m *Client) GetToken() string {
+	if m != nil {
+		return m.Token
+	}
+	return ""
+}
+
+func (m *Client) GetDisplayName() string {
+	if m != nil {
+		return m.DisplayName
+	}
+	return ""
+}
+
+func (m *Client) GetInternalAddress() string {
 	if m != nil {
 		return m.InternalAddress
 	}
 	return ""
 }
 
-func (m *CreateConnectionResponse) GetPublicAddress() string {
+func (m *Client) GetPublicAddress() string {
 	if m != nil {
 		return m.PublicAddress
 	}
 	return ""
 }
 
+type ListClientsRequest struct {
+	PageToken            string   `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ListClientsRequest) Reset()         { *m = ListClientsRequest{} }
+func (m *ListClientsRequest) String() string { return proto.CompactTextString(m) }
+func (*ListClientsRequest) ProtoMessage()    {}
+func (*ListClientsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_58b4a54be18c47e6, []int{2}
+}
+
+func (m *ListClientsRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListClientsRequest.Unmarshal(m, b)
+}
+func (m *ListClientsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListClientsRequest.Marshal(b, m, deterministic)
+}
+func (m *ListClientsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListClientsRequest.Merge(m, src)
+}
+func (m *ListClientsRequest) XXX_Size() int {
+	return xxx_messageInfo_ListClientsRequest.Size(m)
+}
+func (m *ListClientsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListClientsRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListClientsRequest proto.InternalMessageInfo
+
+func (m *ListClientsRequest) GetPageToken() string {
+	if m != nil {
+		return m.PageToken
+	}
+	return ""
+}
+
+type ListClientsResponse struct {
+	Clients              []*Client `protobuf:"bytes,1,rep,name=clients,proto3" json:"clients,omitempty"`
+	NextPageToken        string    `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	TotalCount           int32     `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
+}
+
+func (m *ListClientsResponse) Reset()         { *m = ListClientsResponse{} }
+func (m *ListClientsResponse) String() string { return proto.CompactTextString(m) }
+func (*ListClientsResponse) ProtoMessage()    {}
+func (*ListClientsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_58b4a54be18c47e6, []int{3}
+}
+
+func (m *ListClientsResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListClientsResponse.Unmarshal(m, b)
+}
+func (m *ListClientsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListClientsResponse.Marshal(b, m, deterministic)
+}
+func (m *ListClientsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListClientsResponse.Merge(m, src)
+}
+func (m *ListClientsResponse) XXX_Size() int {
+	return xxx_messageInfo_ListClientsResponse.Size(m)
+}
+func (m *ListClientsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListClientsResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListClientsResponse proto.InternalMessageInfo
+
+func (m *ListClientsResponse) GetClients() []*Client {
+	if m != nil {
+		return m.Clients
+	}
+	return nil
+}
+
+func (m *ListClientsResponse) GetNextPageToken() string {
+	if m != nil {
+		return m.NextPageToken
+	}
+	return ""
+}
+
+func (m *ListClientsResponse) GetTotalCount() int32 {
+	if m != nil {
+		return m.TotalCount
+	}
+	return 0
+}
+
+type ListBackendServiceUsersRequest struct {
+	Parent               string   `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
+	PageToken            string   `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ListBackendServiceUsersRequest) Reset()         { *m = ListBackendServiceUsersRequest{} }
+func (m *ListBackendServiceUsersRequest) String() string { return proto.CompactTextString(m) }
+func (*ListBackendServiceUsersRequest) ProtoMessage()    {}
+func (*ListBackendServiceUsersRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_58b4a54be18c47e6, []int{4}
+}
+
+func (m *ListBackendServiceUsersRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListBackendServiceUsersRequest.Unmarshal(m, b)
+}
+func (m *ListBackendServiceUsersRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListBackendServiceUsersRequest.Marshal(b, m, deterministic)
+}
+func (m *ListBackendServiceUsersRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListBackendServiceUsersRequest.Merge(m, src)
+}
+func (m *ListBackendServiceUsersRequest) XXX_Size() int {
+	return xxx_messageInfo_ListBackendServiceUsersRequest.Size(m)
+}
+func (m *ListBackendServiceUsersRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListBackendServiceUsersRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListBackendServiceUsersRequest proto.InternalMessageInfo
+
+func (m *ListBackendServiceUsersRequest) GetParent() string {
+	if m != nil {
+		return m.Parent
+	}
+	return ""
+}
+
+func (m *ListBackendServiceUsersRequest) GetPageToken() string {
+	if m != nil {
+		return m.PageToken
+	}
+	return ""
+}
+
+type ListBackendServiceUsersResponse struct {
+	Users                []*BackendServiceUser `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	NextPageToken        string                `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	TotalCount           int32                 `protobuf:"varint,3,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
+}
+
+func (m *ListBackendServiceUsersResponse) Reset()         { *m = ListBackendServiceUsersResponse{} }
+func (m *ListBackendServiceUsersResponse) String() string { return proto.CompactTextString(m) }
+func (*ListBackendServiceUsersResponse) ProtoMessage()    {}
+func (*ListBackendServiceUsersResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_58b4a54be18c47e6, []int{5}
+}
+
+func (m *ListBackendServiceUsersResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListBackendServiceUsersResponse.Unmarshal(m, b)
+}
+func (m *ListBackendServiceUsersResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListBackendServiceUsersResponse.Marshal(b, m, deterministic)
+}
+func (m *ListBackendServiceUsersResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListBackendServiceUsersResponse.Merge(m, src)
+}
+func (m *ListBackendServiceUsersResponse) XXX_Size() int {
+	return xxx_messageInfo_ListBackendServiceUsersResponse.Size(m)
+}
+func (m *ListBackendServiceUsersResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListBackendServiceUsersResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListBackendServiceUsersResponse proto.InternalMessageInfo
+
+func (m *ListBackendServiceUsersResponse) GetUsers() []*BackendServiceUser {
+	if m != nil {
+		return m.Users
+	}
+	return nil
+}
+
+func (m *ListBackendServiceUsersResponse) GetNextPageToken() string {
+	if m != nil {
+		return m.NextPageToken
+	}
+	return ""
+}
+
+func (m *ListBackendServiceUsersResponse) GetTotalCount() int32 {
+	if m != nil {
+		return m.TotalCount
+	}
+	return 0
+}
+
+type BackendServiceUser struct {
+	UserAddr             string   `protobuf:"bytes,1,opt,name=user_addr,json=userAddr,proto3" json:"user_addr,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *BackendServiceUser) Reset()         { *m = BackendServiceUser{} }
+func (m *BackendServiceUser) String() string { return proto.CompactTextString(m) }
+func (*BackendServiceUser) ProtoMessage()    {}
+func (*BackendServiceUser) Descriptor() ([]byte, []int) {
+	return fileDescriptor_58b4a54be18c47e6, []int{6}
+}
+
+func (m *BackendServiceUser) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_BackendServiceUser.Unmarshal(m, b)
+}
+func (m *BackendServiceUser) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_BackendServiceUser.Marshal(b, m, deterministic)
+}
+func (m *BackendServiceUser) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BackendServiceUser.Merge(m, src)
+}
+func (m *BackendServiceUser) XXX_Size() int {
+	return xxx_messageInfo_BackendServiceUser.Size(m)
+}
+func (m *BackendServiceUser) XXX_DiscardUnknown() {
+	xxx_messageInfo_BackendServiceUser.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BackendServiceUser proto.InternalMessageInfo
+
+func (m *BackendServiceUser) GetUserAddr() string {
+	if m != nil {
+		return m.UserAddr
+	}
+	return ""
+}
+
 func init() {
-	proto.RegisterType((*CreateConnectionRequest)(nil), "api.CreateConnectionRequest")
-	proto.RegisterType((*CreateConnectionResponse)(nil), "api.CreateConnectionResponse")
+	proto.RegisterType((*CreateClientRequest)(nil), "api.CreateClientRequest")
+	proto.RegisterType((*Client)(nil), "api.Client")
+	proto.RegisterType((*ListClientsRequest)(nil), "api.ListClientsRequest")
+	proto.RegisterType((*ListClientsResponse)(nil), "api.ListClientsResponse")
+	proto.RegisterType((*ListBackendServiceUsersRequest)(nil), "api.ListBackendServiceUsersRequest")
+	proto.RegisterType((*ListBackendServiceUsersResponse)(nil), "api.ListBackendServiceUsersResponse")
+	proto.RegisterType((*BackendServiceUser)(nil), "api.BackendServiceUser")
 }
 
 func init() { proto.RegisterFile("proto/proxy.proto", fileDescriptor_58b4a54be18c47e6) }
 
 var fileDescriptor_58b4a54be18c47e6 = []byte{
-	// 282 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x91, 0xcf, 0x4b, 0xc3, 0x30,
-	0x14, 0xc7, 0x8d, 0x55, 0x61, 0x6f, 0x3f, 0x9c, 0xb9, 0x58, 0x44, 0x71, 0xeb, 0x10, 0xe6, 0xa5,
-	0x15, 0xf5, 0x1f, 0xd0, 0xde, 0x45, 0xba, 0x9b, 0x97, 0x91, 0xb6, 0x8f, 0x19, 0x48, 0x93, 0x2c,
-	0x49, 0xd5, 0xdd, 0xc4, 0xbf, 0x5c, 0x4c, 0x5b, 0x11, 0xc7, 0x6e, 0x8f, 0x4f, 0x3e, 0xe4, 0x7d,
-	0x93, 0x2f, 0x9c, 0x68, 0xa3, 0x9c, 0x4a, 0xb4, 0x51, 0x1f, 0x9b, 0xd8, 0xcf, 0x34, 0x60, 0x9a,
-	0x47, 0x5f, 0x04, 0x4e, 0x53, 0x83, 0xcc, 0x61, 0xaa, 0xa4, 0xc4, 0xc2, 0x71, 0x25, 0x33, 0x5c,
-	0xd7, 0x68, 0x1d, 0x9d, 0xc2, 0xa0, 0xe4, 0x56, 0x0b, 0xb6, 0x59, 0x4a, 0x56, 0x61, 0x48, 0x26,
-	0x64, 0xde, 0xcb, 0xfa, 0x2d, 0x7b, 0x62, 0x15, 0xd2, 0x4b, 0xe8, 0xeb, 0x3a, 0x17, 0xbc, 0x58,
-	0x6a, 0x65, 0x5c, 0xb8, 0x3f, 0x21, 0xf3, 0xc3, 0x0c, 0x1a, 0xf4, 0xac, 0x8c, 0xa3, 0x33, 0x18,
-	0x72, 0xe9, 0xd0, 0x48, 0x26, 0x1a, 0x25, 0xf0, 0xca, 0xa0, 0x83, 0x3f, 0x52, 0xf4, 0x49, 0x20,
-	0xdc, 0x0e, 0x61, 0xb5, 0x92, 0x16, 0x29, 0x85, 0x83, 0x3f, 0xdb, 0xfd, 0x4c, 0xaf, 0x61, 0xfc,
-	0x7b, 0x2b, 0x2b, 0x4b, 0x83, 0xd6, 0xfa, 0xdd, 0xbd, 0xec, 0xb8, 0xe3, 0x0f, 0x0d, 0xa6, 0x57,
-	0x30, 0x6a, 0x13, 0x76, 0x62, 0xe0, 0xc5, 0x61, 0x43, 0x5b, 0xed, 0x16, 0x61, 0x94, 0x2a, 0xe9,
-	0x8c, 0x12, 0x0b, 0x34, 0x6f, 0xbc, 0x40, 0xba, 0x80, 0xf1, 0xff, 0x4c, 0xf4, 0x3c, 0x66, 0x9a,
-	0xc7, 0x3b, 0xfe, 0xeb, 0xec, 0x62, 0xc7, 0x69, 0xf3, 0x90, 0x68, 0xef, 0x86, 0x3c, 0xce, 0x5e,
-	0xa6, 0x2b, 0xee, 0x5e, 0xeb, 0x3c, 0x2e, 0x54, 0x95, 0xbc, 0x73, 0xb9, 0x12, 0xeb, 0x44, 0xdc,
-	0xfb, 0x5a, 0x12, 0x6b, 0x8a, 0x84, 0x69, 0x9e, 0x1f, 0xf9, 0x7e, 0xee, 0xbe, 0x03, 0x00, 0x00,
-	0xff, 0xff, 0x1d, 0x45, 0x9b, 0xb8, 0xb4, 0x01, 0x00, 0x00,
+	// 501 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0xcf, 0x6f, 0xd3, 0x30,
+	0x18, 0x5d, 0xd6, 0xb5, 0xd0, 0x2f, 0xed, 0x06, 0x1e, 0x62, 0x51, 0x11, 0xac, 0x4b, 0x19, 0x2a,
+	0x07, 0x1a, 0xd8, 0xb8, 0x70, 0xa4, 0xbd, 0x22, 0x34, 0x05, 0x10, 0x12, 0x97, 0xc8, 0x4d, 0x4d,
+	0xb1, 0x96, 0xda, 0x9e, 0xed, 0xc0, 0x76, 0xe1, 0xc6, 0x1f, 0xc1, 0x5f, 0xc0, 0x9f, 0xc8, 0x15,
+	0xf9, 0x47, 0xaa, 0xd0, 0xa8, 0x9c, 0xb8, 0xc5, 0xcf, 0xef, 0xf3, 0xf7, 0xde, 0xf7, 0x62, 0xc3,
+	0x5d, 0x21, 0xb9, 0xe6, 0x89, 0x90, 0xfc, 0xfa, 0x66, 0x62, 0xbf, 0x51, 0x0b, 0x0b, 0x1a, 0x7f,
+	0x87, 0xc3, 0x99, 0x24, 0x58, 0x93, 0x59, 0x41, 0x09, 0xd3, 0x29, 0xb9, 0x2a, 0x89, 0xd2, 0xe8,
+	0x04, 0x7a, 0x0b, 0xaa, 0x44, 0x81, 0x6f, 0x32, 0x86, 0x57, 0x24, 0x0a, 0x86, 0xc1, 0xb8, 0x9b,
+	0x86, 0x1e, 0x7b, 0x8b, 0x57, 0x04, 0x8d, 0xa0, 0x4f, 0x99, 0x26, 0x92, 0xe1, 0x22, 0x13, 0x5c,
+	0xea, 0x68, 0x77, 0x18, 0x8c, 0xdb, 0x69, 0xaf, 0x02, 0x2f, 0xb8, 0xd4, 0xe8, 0x18, 0x42, 0x51,
+	0xce, 0x0b, 0x9a, 0x3b, 0x4a, 0xcb, 0x52, 0xc0, 0x41, 0x86, 0x10, 0xff, 0x0a, 0xa0, 0xe3, 0x5a,
+	0x23, 0x04, 0x7b, 0xb5, 0x5e, 0xf6, 0x1b, 0xdd, 0x83, 0xb6, 0xe6, 0x97, 0x84, 0xd9, 0xc3, 0xbb,
+	0xa9, 0x5b, 0x34, 0xd4, 0xb5, 0x9a, 0xea, 0x9e, 0xc2, 0x9d, 0xb5, 0x3a, 0xbc, 0x58, 0x48, 0xa2,
+	0x54, 0xb4, 0x67, 0x69, 0x07, 0x15, 0xfe, 0xda, 0xc1, 0xe8, 0x14, 0xf6, 0xbd, 0xc6, 0x8a, 0xd8,
+	0xb6, 0xc4, 0xbe, 0x43, 0x3d, 0x2d, 0x3e, 0x07, 0xf4, 0x86, 0x2a, 0xed, 0xc4, 0xaa, 0x6a, 0x50,
+	0x0f, 0x01, 0x04, 0x5e, 0x92, 0xcc, 0xa9, 0x74, 0xd2, 0xbb, 0x06, 0x79, 0x6f, 0x80, 0xf8, 0x47,
+	0x00, 0x87, 0x7f, 0x55, 0x29, 0xc1, 0x99, 0x22, 0xe8, 0x14, 0x6e, 0xe5, 0x0e, 0x8a, 0x82, 0x61,
+	0x6b, 0x1c, 0x9e, 0x85, 0x13, 0x2c, 0xe8, 0xc4, 0x87, 0x50, 0xed, 0xa1, 0x27, 0x70, 0xc0, 0xc8,
+	0xb5, 0xce, 0x6a, 0x2d, 0xdc, 0x20, 0xfa, 0x06, 0xbe, 0xa8, 0xda, 0x98, 0x31, 0x6b, 0xae, 0x71,
+	0x91, 0xe5, 0xbc, 0x64, 0xeb, 0x31, 0x5b, 0x68, 0x66, 0x90, 0xf8, 0x23, 0x3c, 0x32, 0x32, 0xa6,
+	0x38, 0xbf, 0x24, 0x6c, 0xf1, 0x8e, 0xc8, 0xaf, 0x34, 0x27, 0x1f, 0x14, 0x91, 0x6b, 0x23, 0xf7,
+	0xa1, 0x23, 0xb0, 0x24, 0x4c, 0x7b, 0x13, 0x7e, 0xb5, 0x61, 0x70, 0x77, 0xd3, 0xe0, 0xcf, 0x00,
+	0x8e, 0xb7, 0x9e, 0xec, 0xcd, 0x3e, 0x83, 0x76, 0x69, 0x00, 0x6f, 0xf5, 0xc8, 0x5a, 0x6d, 0x16,
+	0xa4, 0x8e, 0xf5, 0xff, 0x4c, 0xbf, 0x00, 0xd4, 0xec, 0x82, 0x1e, 0x40, 0xd7, 0xf4, 0xb1, 0x61,
+	0x7b, 0xaf, 0xb7, 0x0d, 0x60, 0x72, 0x3e, 0xfb, 0x1d, 0xc0, 0xfe, 0x8c, 0x33, 0x2d, 0x79, 0xe1,
+	0x6b, 0xd0, 0x2b, 0xe8, 0xd5, 0x6f, 0x08, 0x8a, 0x5c, 0x52, 0xcd, 0x4b, 0x33, 0xa8, 0x67, 0x18,
+	0xef, 0x3c, 0x0f, 0xd0, 0x14, 0xc2, 0x5a, 0xf8, 0xc8, 0x19, 0x6f, 0xfe, 0x44, 0x83, 0xa8, 0xb9,
+	0xe1, 0x46, 0x17, 0xef, 0xa0, 0xcf, 0x70, 0xb4, 0x65, 0xbe, 0x68, 0xb4, 0x2e, 0xdb, 0x9e, 0xeb,
+	0xe0, 0xf1, 0xbf, 0x49, 0x55, 0x9f, 0xe9, 0xe8, 0xd3, 0xc9, 0x92, 0xea, 0x2f, 0xe5, 0x7c, 0x92,
+	0xf3, 0x55, 0xf2, 0x8d, 0xb2, 0x65, 0x71, 0x95, 0x14, 0x2f, 0xed, 0x83, 0x91, 0x28, 0x99, 0x27,
+	0x58, 0xd0, 0x79, 0xc7, 0xbe, 0x1c, 0xe7, 0x7f, 0x02, 0x00, 0x00, 0xff, 0xff, 0xc3, 0x5e, 0x36,
+	0xaf, 0x4e, 0x04, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -175,7 +445,9 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ControlServiceClient interface {
-	CreateConnection(ctx context.Context, in *CreateConnectionRequest, opts ...grpc.CallOption) (ControlService_CreateConnectionClient, error)
+	CreateClient(ctx context.Context, in *CreateClientRequest, opts ...grpc.CallOption) (ControlService_CreateClientClient, error)
+	ListClients(ctx context.Context, in *ListClientsRequest, opts ...grpc.CallOption) (*ListClientsResponse, error)
+	ListBackendServiceUsers(ctx context.Context, in *ListBackendServiceUsersRequest, opts ...grpc.CallOption) (*ListBackendServiceUsersResponse, error)
 }
 
 type controlServiceClient struct {
@@ -186,12 +458,12 @@ func NewControlServiceClient(cc *grpc.ClientConn) ControlServiceClient {
 	return &controlServiceClient{cc}
 }
 
-func (c *controlServiceClient) CreateConnection(ctx context.Context, in *CreateConnectionRequest, opts ...grpc.CallOption) (ControlService_CreateConnectionClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_ControlService_serviceDesc.Streams[0], "/api.ControlService/CreateConnection", opts...)
+func (c *controlServiceClient) CreateClient(ctx context.Context, in *CreateClientRequest, opts ...grpc.CallOption) (ControlService_CreateClientClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_ControlService_serviceDesc.Streams[0], "/api.ControlService/CreateClient", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &controlServiceCreateConnectionClient{stream}
+	x := &controlServiceCreateClientClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -201,69 +473,140 @@ func (c *controlServiceClient) CreateConnection(ctx context.Context, in *CreateC
 	return x, nil
 }
 
-type ControlService_CreateConnectionClient interface {
-	Recv() (*CreateConnectionResponse, error)
+type ControlService_CreateClientClient interface {
+	Recv() (*Client, error)
 	grpc.ClientStream
 }
 
-type controlServiceCreateConnectionClient struct {
+type controlServiceCreateClientClient struct {
 	grpc.ClientStream
 }
 
-func (x *controlServiceCreateConnectionClient) Recv() (*CreateConnectionResponse, error) {
-	m := new(CreateConnectionResponse)
+func (x *controlServiceCreateClientClient) Recv() (*Client, error) {
+	m := new(Client)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
+func (c *controlServiceClient) ListClients(ctx context.Context, in *ListClientsRequest, opts ...grpc.CallOption) (*ListClientsResponse, error) {
+	out := new(ListClientsResponse)
+	err := c.cc.Invoke(ctx, "/api.ControlService/ListClients", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *controlServiceClient) ListBackendServiceUsers(ctx context.Context, in *ListBackendServiceUsersRequest, opts ...grpc.CallOption) (*ListBackendServiceUsersResponse, error) {
+	out := new(ListBackendServiceUsersResponse)
+	err := c.cc.Invoke(ctx, "/api.ControlService/ListBackendServiceUsers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ControlServiceServer is the server API for ControlService service.
 type ControlServiceServer interface {
-	CreateConnection(*CreateConnectionRequest, ControlService_CreateConnectionServer) error
+	CreateClient(*CreateClientRequest, ControlService_CreateClientServer) error
+	ListClients(context.Context, *ListClientsRequest) (*ListClientsResponse, error)
+	ListBackendServiceUsers(context.Context, *ListBackendServiceUsersRequest) (*ListBackendServiceUsersResponse, error)
 }
 
 // UnimplementedControlServiceServer can be embedded to have forward compatible implementations.
 type UnimplementedControlServiceServer struct {
 }
 
-func (*UnimplementedControlServiceServer) CreateConnection(req *CreateConnectionRequest, srv ControlService_CreateConnectionServer) error {
-	return status.Errorf(codes.Unimplemented, "method CreateConnection not implemented")
+func (*UnimplementedControlServiceServer) CreateClient(req *CreateClientRequest, srv ControlService_CreateClientServer) error {
+	return status.Errorf(codes.Unimplemented, "method CreateClient not implemented")
+}
+func (*UnimplementedControlServiceServer) ListClients(ctx context.Context, req *ListClientsRequest) (*ListClientsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListClients not implemented")
+}
+func (*UnimplementedControlServiceServer) ListBackendServiceUsers(ctx context.Context, req *ListBackendServiceUsersRequest) (*ListBackendServiceUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListBackendServiceUsers not implemented")
 }
 
 func RegisterControlServiceServer(s *grpc.Server, srv ControlServiceServer) {
 	s.RegisterService(&_ControlService_serviceDesc, srv)
 }
 
-func _ControlService_CreateConnection_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(CreateConnectionRequest)
+func _ControlService_CreateClient_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(CreateClientRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(ControlServiceServer).CreateConnection(m, &controlServiceCreateConnectionServer{stream})
+	return srv.(ControlServiceServer).CreateClient(m, &controlServiceCreateClientServer{stream})
 }
 
-type ControlService_CreateConnectionServer interface {
-	Send(*CreateConnectionResponse) error
+type ControlService_CreateClientServer interface {
+	Send(*Client) error
 	grpc.ServerStream
 }
 
-type controlServiceCreateConnectionServer struct {
+type controlServiceCreateClientServer struct {
 	grpc.ServerStream
 }
 
-func (x *controlServiceCreateConnectionServer) Send(m *CreateConnectionResponse) error {
+func (x *controlServiceCreateClientServer) Send(m *Client) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func _ControlService_ListClients_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListClientsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlServiceServer).ListClients(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ControlService/ListClients",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlServiceServer).ListClients(ctx, req.(*ListClientsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ControlService_ListBackendServiceUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListBackendServiceUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlServiceServer).ListBackendServiceUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ControlService/ListBackendServiceUsers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlServiceServer).ListBackendServiceUsers(ctx, req.(*ListBackendServiceUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 var _ControlService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "api.ControlService",
 	HandlerType: (*ControlServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListClients",
+			Handler:    _ControlService_ListClients_Handler,
+		},
+		{
+			MethodName: "ListBackendServiceUsers",
+			Handler:    _ControlService_ListBackendServiceUsers_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "CreateConnection",
-			Handler:       _ControlService_CreateConnection_Handler,
+			StreamName:    "CreateClient",
+			Handler:       _ControlService_CreateClient_Handler,
 			ServerStreams: true,
 		},
 	},
