@@ -4,6 +4,12 @@
 
 l4proxy is used to export services on non static ip hosts by a public host. For example you can export sshd/vnc/3389 service in your homelab by a vps using l4proxy.
 
+## Features
+
+* l4 reverse proxy.
+* API to list connected clients and backend users.
+* load balance for same backend service on different host.
+
 ## Architecture
 
 The following is how different components are connected together. SSH service is used as an example.
@@ -57,7 +63,7 @@ For more detail usage use `l4proxy -h`.
 1. unit tests reqired.
 2. CI.
 3. integration tests.
-4. shared internal and shared public port between different clients.
+4. shared internal port between different clients.
 5. error handling.
 6. rate limit support
-7. CRUD support for connection infos.
+7. web ?

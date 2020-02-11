@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"net"
 	"strings"
 	"sync"
 
@@ -27,44 +26,12 @@ func New(host string) *Handler {
 	return h
 }
 
-func (h *Handler) listen(addr string, ctx context.Context, wg *sync.WaitGroup) (string, chan net.Conn, error) {
-	ltn, err := net.Listen("tcp", addr)
-	if err != nil {
-		return "", nil, err
-	}
-	ch := make(chan net.Conn)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		select {
-		case <-ctx.Done():
-		}
-		ltn.Close()
-	}()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer close(ch)
-		for {
-			c, err := ltn.Accept()
-			if err != nil && strings.Contains(err.Error(), "use of closed network connection") {
-				return
-			} else if err != nil {
-				panic(err)
-			}
-			ch <- c
-		}
-	}()
-	_, port, _ := net.SplitHostPort(ltn.Addr().String())
-	return fmt.Sprintf("%s:%s", h.host, port), ch, nil
-}
-
 // CreateClient creates a new internal listener for clients.
 // Whether public listener is unique depends on request parameter.
 func (h *Handler) CreateClient(req *api.CreateClientRequest, svr api.ControlService_CreateClientServer) error {
 	ctx := svr.Context()
 	uid := strings.Replace(uuid.NewV1().String(), "-", "", -1)
-	c, err := NewClient(uid, req.DisplayName, h.host, fmt.Sprintf("%d", req.PublicPort), fmt.Sprintf("%d", req.InternalPort))
+	c, err := NewClient(uid, req.DisplayName, h.host, fmt.Sprintf("%d", req.PublicPort), fmt.Sprintf("%d", req.InternalPort), req.SharePublicAddr)
 	if err != nil {
 		return err
 	}
@@ -78,6 +45,7 @@ func (h *Handler) CreateClient(req *api.CreateClientRequest, svr api.ControlServ
 		InternalAddress: "",
 		DisplayName:     "",
 		PublicAddress:   c.PubAddr(),
+		SharePublicAddr: req.SharePublicAddr,
 	}
 	if err := svr.Send(resp); err != nil {
 		panic(err)
@@ -114,6 +82,7 @@ func (h *Handler) ListClients(ctx context.Context, req *api.ListClientsRequest) 
 			DisplayName:     c.displayName,
 			InternalAddress: c.IntAddr(),
 			PublicAddress:   c.PubAddr(),
+			SharePublicAddr: c.sharePub,
 		}
 		cs = append(cs, c)
 	}

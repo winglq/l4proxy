@@ -19,10 +19,11 @@ import (
 )
 
 type ClientOptions struct {
-	svrAddr string
-	pubPort int32
-	intPort int32
-	name    string
+	svrAddr  string
+	pubPort  int32
+	intPort  int32
+	name     string
+	sharePub bool
 }
 
 type ServerOptions struct {
@@ -112,9 +113,10 @@ func newClientCmd() *cobra.Command {
 			}()
 			client := api.NewControlServiceClient(c)
 			conClient, err := client.CreateClient(context.TODO(), &api.CreateClientRequest{
-				DisplayName:  opt.c.name,
-				PublicPort:   opt.c.pubPort,
-				InternalPort: opt.c.intPort,
+				DisplayName:     opt.c.name,
+				PublicPort:      opt.c.pubPort,
+				InternalPort:    opt.c.intPort,
+				SharePublicAddr: opt.c.sharePub,
 			})
 			if err != nil {
 				panic(err)
@@ -145,7 +147,7 @@ func newClientCmd() *cobra.Command {
 					if err != nil {
 						panic(err)
 					}
-					log.Printf("connected to server: %s -> %s", sconn.LocalAddr(), sconn.RemoteAddr())
+					log.Printf("connected to backend service: %s -> %s", sconn.LocalAddr(), sconn.RemoteAddr())
 					pair := &handler.PairedConn{
 						SRC:  c,
 						DEST: sconn,
@@ -162,6 +164,7 @@ func newClientCmd() *cobra.Command {
 	cmd.Flags().Int32Var(&opt.c.pubPort, "pub_port", 0, "public port for this client.")
 	cmd.Flags().Int32Var(&opt.c.intPort, "int_port", 0, "internal port used to listen client connection.")
 	cmd.Flags().StringVar(&opt.c.name, "client_name", "unknown", "client name")
+	cmd.Flags().BoolVar(&opt.c.sharePub, "share_public_port", false, "share public port for different clients")
 	list := newListClientsCmd()
 	cmd.AddCommand(list)
 	return &cmd

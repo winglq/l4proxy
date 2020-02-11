@@ -11,6 +11,7 @@ import (
 type Client struct {
 	name               string
 	displayName        string
+	sharePub           bool
 	pubPort            string
 	intPort            string
 	host               string
@@ -22,7 +23,7 @@ type Client struct {
 	wg                 sync.WaitGroup
 }
 
-func NewClient(name, displayName, host, pubPort, intPort string) (*Client, error) {
+func NewClient(name, displayName, host, pubPort, intPort string, sharePub bool) (*Client, error) {
 	c := &Client{
 		name:               name,
 		displayName:        displayName,
@@ -32,6 +33,7 @@ func NewClient(name, displayName, host, pubPort, intPort string) (*Client, error
 		host:               host,
 		done:               make(chan struct{}),
 		NewPubConnNotifyCH: make(chan Token),
+		sharePub:           sharePub,
 	}
 	return c, c.init()
 }
@@ -44,18 +46,43 @@ func (c *Client) IntAddr() string {
 	return net.JoinHostPort(c.host, c.intPort)
 }
 
-func (c *Client) listenAndAccept(addr string) (string, chan net.Conn, error) {
-	ltn, err := net.Listen("tcp", addr)
+var cs = map[string]chan net.Conn{}
+var mu sync.Mutex
+
+func key(network, address string) string {
+	return strings.Join([]string{network, address}, "_")
+}
+
+func (c *Client) listenAndAccept(addr string, share bool) (string, chan net.Conn, error) {
+	mu.Lock()
+	defer mu.Unlock()
+	var ltn net.Listener
+	var err error
+	if share {
+		ch, ok := cs[key("tcp", addr)]
+		if ok {
+			return addr, ch, nil
+		}
+		ltn, err = Listen("tcp", addr, func() {
+			mu.Lock()
+			defer mu.Unlock()
+			delete(cs, key("tcp", addr))
+		})
+
+	} else {
+		ltn, err = net.Listen("tcp", addr)
+	}
 	if err != nil {
 		return "", nil, err
 	}
-	ch := make(chan net.Conn)
+
 	go func() {
 		select {
 		case <-c.done:
 		}
 		ltn.Close()
 	}()
+	ch := make(chan net.Conn)
 	c.wg.Add(1)
 	go func() {
 		defer c.wg.Done()
@@ -71,15 +98,18 @@ func (c *Client) listenAndAccept(addr string) (string, chan net.Conn, error) {
 		}
 	}()
 	_, port, _ := net.SplitHostPort(ltn.Addr().String())
+	if share {
+		cs[key("tcp", addr)] = ch
+	}
 	return port, ch, nil
 }
 
 func (c *Client) init() (err error) {
-	c.intPort, c.intConnCH, err = c.listenAndAccept(c.IntAddr())
+	c.intPort, c.intConnCH, err = c.listenAndAccept(c.IntAddr(), false)
 	if err != nil {
 		return
 	}
-	c.pubPort, c.pubConnCH, err = c.listenAndAccept(c.PubAddr())
+	c.pubPort, c.pubConnCH, err = c.listenAndAccept(c.PubAddr(), c.sharePub)
 	if err != nil {
 		return
 	}
@@ -103,6 +133,10 @@ func (c *Client) run() {
 			}
 			return
 		case conn := <-c.pubConnCH:
+			if conn == nil {
+				c.Close()
+				break
+			}
 			token = token + 1
 			c.connPairs[token.String()] = &PairedConn{
 				SRC: conn,
@@ -110,6 +144,10 @@ func (c *Client) run() {
 			c.NewPubConnNotifyCH <- token
 			log.Debugf("new backend service user from %s", conn.RemoteAddr())
 		case conn := <-c.intConnCH:
+			if conn == nil {
+				c.Close()
+				break
+			}
 			buf := make([]byte, token.Len())
 			_, err := conn.Read(buf)
 			if err != nil {
