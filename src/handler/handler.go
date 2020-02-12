@@ -11,7 +11,6 @@ import (
 )
 
 type Handler struct {
-	done    chan struct{}
 	host    string
 	clients map[string]*Client
 	mu      sync.Mutex
@@ -21,7 +20,6 @@ func New(host string) *Handler {
 	h := &Handler{
 		host:    host,
 		clients: map[string]*Client{},
-		done:    make(chan struct{}),
 	}
 	return h
 }
@@ -66,9 +64,10 @@ func (h *Handler) CreateClient(req *api.CreateClientRequest, svr api.ControlServ
 			}
 		case <-ctx.Done():
 			c.Close()
+			h.mu.Lock()
+			defer h.mu.Unlock()
 			delete(h.clients, c.name)
 			return nil
-
 		}
 	}
 }
@@ -76,6 +75,7 @@ func (h *Handler) CreateClient(req *api.CreateClientRequest, svr api.ControlServ
 func (h *Handler) ListClients(ctx context.Context, req *api.ListClientsRequest) (*api.ListClientsResponse, error) {
 	cs := []*api.Client{}
 	h.mu.Lock()
+	defer h.mu.Unlock()
 	for _, c := range h.clients {
 		c := &api.Client{
 			Name:            c.name,
@@ -87,7 +87,6 @@ func (h *Handler) ListClients(ctx context.Context, req *api.ListClientsRequest) 
 		cs = append(cs, c)
 	}
 	length := int32(len(h.clients))
-	h.mu.Unlock()
 	return &api.ListClientsResponse{
 		TotalCount: length,
 		Clients:    cs,
@@ -95,6 +94,8 @@ func (h *Handler) ListClients(ctx context.Context, req *api.ListClientsRequest) 
 }
 
 func (h *Handler) ListBackendServiceUsers(ctx context.Context, req *api.ListBackendServiceUsersRequest) (*api.ListBackendServiceUsersResponse, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	us := []*api.BackendServiceUser{}
 	for _, p := range h.clients[req.Parent].connPairs {
 		u := &api.BackendServiceUser{

@@ -35,7 +35,11 @@ func NewClient(name, displayName, host, pubPort, intPort string, sharePub bool) 
 		NewPubConnNotifyCH: make(chan Token),
 		sharePub:           sharePub,
 	}
+	c.log().Infof("client connected")
 	return c, c.init()
+}
+func (c *Client) log() *log.Entry {
+	return log.NewEntry(log.StandardLogger()).WithField("client", c.name)
 }
 
 func (c *Client) PubAddr() string {
@@ -46,7 +50,7 @@ func (c *Client) IntAddr() string {
 	return net.JoinHostPort(c.host, c.intPort)
 }
 
-var cs = map[string]chan net.Conn{}
+var cs = map[net.Listener]chan net.Conn{}
 var mu sync.Mutex
 
 func key(network, address string) string {
@@ -59,33 +63,44 @@ func (c *Client) listenAndAccept(addr string, share bool) (string, chan net.Conn
 	var ltn net.Listener
 	var err error
 	if share {
-		ch, ok := cs[key("tcp", addr)]
-		if ok {
-			return addr, ch, nil
-		}
 		ltn, err = Listen("tcp", addr, func() {
 			mu.Lock()
 			defer mu.Unlock()
-			delete(cs, key("tcp", addr))
+			delete(cs, ltn)
 		})
+		if err != nil {
+			return "", nil, err
+		}
+		go func() {
+			select {
+			case <-c.done:
+			}
+			ltn.Close()
+		}()
+
+		ch, ok := cs[ltn]
+		if ok {
+			_, port, _ := net.SplitHostPort(addr)
+			return port, ch, nil
+		}
 
 	} else {
 		ltn, err = net.Listen("tcp", addr)
-	}
-	if err != nil {
-		return "", nil, err
+		if err != nil {
+			return "", nil, err
+		}
+		go func() {
+			select {
+			case <-c.done:
+			}
+			ltn.Close()
+		}()
 	}
 
-	go func() {
-		select {
-		case <-c.done:
-		}
-		ltn.Close()
-	}()
 	ch := make(chan net.Conn)
-	c.wg.Add(1)
+	// this go routine will be closed when ltn(may be shared) closed.
+	// may we should use SharedListener to manage this go routine.
 	go func() {
-		defer c.wg.Done()
 		defer close(ch)
 		for {
 			c, err := ltn.Accept()
@@ -99,7 +114,7 @@ func (c *Client) listenAndAccept(addr string, share bool) (string, chan net.Conn
 	}()
 	_, port, _ := net.SplitHostPort(ltn.Addr().String())
 	if share {
-		cs[key("tcp", addr)] = ch
+		cs[ltn] = ch
 	}
 	return port, ch, nil
 }
@@ -125,28 +140,24 @@ func (c *Client) Start() {
 
 func (c *Client) run() {
 	var token Token
+	defer c.wg.Done()
 	for {
 		select {
 		case <-c.done:
-			for _, p := range c.connPairs {
-				p.Close()
-			}
 			return
 		case conn := <-c.pubConnCH:
 			if conn == nil {
-				c.Close()
-				break
+				return
 			}
 			token = token + 1
 			c.connPairs[token.String()] = &PairedConn{
 				SRC: conn,
 			}
 			c.NewPubConnNotifyCH <- token
-			log.Debugf("new backend service user from %s", conn.RemoteAddr())
+			c.log().Debugf("new backend service user from %s", conn.RemoteAddr())
 		case conn := <-c.intConnCH:
 			if conn == nil {
-				c.Close()
-				break
+				return
 			}
 			buf := make([]byte, token.Len())
 			_, err := conn.Read(buf)
@@ -157,7 +168,7 @@ func (c *Client) run() {
 			pair.DEST = conn
 			pair.OnClose = func() {
 				delete(c.connPairs, string(buf))
-				log.Debugf("backend service user %s disconnected", pair.SRC.RemoteAddr())
+				c.log().Debugf("backend service user %s disconnected", pair.SRC.RemoteAddr())
 			}
 			pair.Copy(&c.wg)
 
@@ -167,7 +178,10 @@ func (c *Client) run() {
 }
 
 func (c *Client) Close() {
+	for _, p := range c.connPairs {
+		p.Close()
+	}
 	close(c.done)
 	c.wg.Wait()
-	log.Infof("client %s closed.", c.name)
+	c.log().Infof("client closed.")
 }
