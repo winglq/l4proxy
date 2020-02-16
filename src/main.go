@@ -8,7 +8,9 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/inhies/go-bytesize"
 	"github.com/olekukonko/tablewriter"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -114,24 +116,47 @@ func newClientCmd() *cobra.Command {
 				c.Close()
 			}()
 			client := api.NewControlServiceClient(c)
-			conClient, err := client.CreateClient(context.TODO(), &api.CreateClientRequest{
-				DisplayName:     opt.c.name,
-				PublicPort:      opt.c.pubPort,
-				InternalPort:    opt.c.intPort,
-				SharePublicAddr: opt.c.sharePub,
-			})
-			if err != nil {
+			createClientFunc := func() (api.ControlService_CreateClientClient, error) {
+				for {
+					c, err := client.CreateClient(context.TODO(), &api.CreateClientRequest{
+						DisplayName:     opt.c.name,
+						PublicPort:      opt.c.pubPort,
+						InternalPort:    opt.c.intPort,
+						SharePublicAddr: opt.c.sharePub,
+					})
+					if err == nil {
+						return c, nil
+					}
+					if grpc.Code(err) == codes.Unavailable {
+						log.Printf("reconnecting after 5 second due to err: %v", err)
+						time.Sleep(5 * time.Second)
+						continue
+					} else if grpc.Code(err) == codes.Canceled {
+						return nil, err
+					} else if err != nil {
+						panic(err)
+					}
+				}
+
+			}
+			conClient, err := createClientFunc()
+			if err != nil && grpc.Code(err) == codes.Canceled {
+				return
+			} else if err != nil {
 				panic(err)
 			}
-			var wg sync.WaitGroup
 			for {
 				resp, err := conClient.Recv()
 				if err != nil {
 					if grpc.Code(err) == codes.Canceled {
-						return
+						break
 					} else if grpc.Code(err) == codes.Unavailable {
-						log.Printf("connection closed: %v", err)
-						return
+						log.Errorf("recv messsage failed: %v", err)
+						conClient, err = createClientFunc()
+						if err != nil && grpc.Code(err) == codes.Canceled {
+							return
+						}
+						continue
 					} else {
 						panic(err)
 					}
@@ -150,16 +175,13 @@ func newClientCmd() *cobra.Command {
 						panic(err)
 					}
 					log.Printf("connected to backend service: %s -> %s", sconn.LocalAddr(), sconn.RemoteAddr())
-					pair := &handler.PairedConn{
-						SRC:  c,
-						DEST: sconn,
-					}
-					pair.Copy(&wg)
+					pair := handler.NewPairedConn(c, sconn)
+					pair.Copy()
+					defer pair.Close()
 				} else {
 					fmt.Printf("PUBLIC ADDRESS: %s\n", resp.PublicAddress)
 				}
 			}
-			wg.Wait()
 		},
 	}
 	cmd.PersistentFlags().StringVar(&opt.c.svrAddr, "svr_addr", "127.0.0.1:2222", "server address.")
@@ -222,9 +244,9 @@ func newListClientUsersCmd() *cobra.Command {
 				os.Exit(1)
 			}
 			table := tablewriter.NewWriter(os.Stdout)
-			table.SetHeader([]string{"User Address"})
+			table.SetHeader([]string{"User Address", "Speed In", "Speed Out"})
 			for _, u := range resp.Users {
-				table.Append([]string{u.UserAddr})
+				table.Append([]string{u.UserAddr, bytesize.New(u.SpeedIn).String(), bytesize.New(u.SpeedOut).String()})
 
 			}
 			table.Render()
@@ -273,11 +295,8 @@ func proxy(localAddr, remoteAddr string) {
 			panic(err)
 		}
 		log.Printf("connected from %s", cc.RemoteAddr())
-		p := &handler.PairedConn{
-			SRC:  cc,
-			DEST: c,
-		}
-		p.Copy(&wg)
+		p := handler.NewPairedConn(cc, c)
+		p.Copy()
 		go func() {
 			<-cSig
 			p.Close()

@@ -17,16 +17,6 @@ message CreateClientRequest {
   bool   share_public_addr = 4;
 }
 
-message Client {
-  string name = 1;
-  string token = 2;
-  string display_name = 3;
-  string internal_address = 4;
-  bool   share_public_addr = 5;
-  string public_address = 6;
-
-}
-
 message ListClientsRequest {
   string page_token = 1;
 }
@@ -48,6 +38,18 @@ message ListBackendServiceUsersResponse {
   int32 total_count = 3;
 }
 
+message Client {
+  string name = 1;
+  string token = 2;
+  string display_name = 3;
+  string internal_address = 4;
+  bool   share_public_addr = 5;
+  string public_address = 6;
+}
+
+
 message BackendServiceUser {
   string user_addr = 1;
+  double speed_in = 2;
+  double speed_out = 3;
 }

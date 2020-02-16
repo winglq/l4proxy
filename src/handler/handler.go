@@ -96,6 +96,8 @@ func (h *Handler) ListBackendServiceUsers(ctx context.Context, req *api.ListBack
 		p := v.(*PairedConn)
 		u := &api.BackendServiceUser{
 			UserAddr: p.SRC.RemoteAddr().String(),
+			SpeedIn:  p.SpeedIn,
+			SpeedOut: p.SpeedOut,
 		}
 		us = append(us, u)
 		count += 1

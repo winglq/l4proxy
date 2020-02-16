@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.3.0 // indirect
+	github.com/inhies/go-bytesize v0.0.0-20151001220322-5990f52c6ad6
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.4.2

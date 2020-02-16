@@ -154,9 +154,7 @@ func (c *Client) run() {
 				return
 			}
 			token = token + 1
-			c.connPairs.Store(token.String(), &PairedConn{
-				SRC: conn,
-			})
+			c.connPairs.Store(token.String(), NewPairedConn(conn, nil))
 			c.NewPubConnNotifyCH <- token
 			c.log().Debugf("new backend service user from %s", conn.RemoteAddr())
 		case conn := <-c.intConnCH:
@@ -178,11 +176,10 @@ func (c *Client) run() {
 				c.connPairs.Delete(string(buf))
 				c.log().Debugf("backend service user %s disconnected", pair.SRC.RemoteAddr())
 			}
-			pair.Copy(&c.wg)
+			pair.Copy()
 
 		}
 	}
-
 }
 
 func (c *Client) Close() {
