@@ -45,10 +45,11 @@ func init() {
 }
 
 func newLANCmd() *cobra.Command {
+	pubPort := "22"
 	cmd := &cobra.Command{
 		Use: "lan [host] [port]",
 		Run: func(cmd *cobra.Command, args []string) {
-			port := "22"
+			port := pubPort
 			host := "127.0.0.1"
 			if len(args) > 0 {
 				host = args[0]
@@ -59,6 +60,7 @@ func newLANCmd() *cobra.Command {
 			proxy(":222", fmt.Sprintf("%s:%s", host, port))
 		},
 	}
+	cmd.Flags().StringVar(&pubPort, "pub_port", pubPort, "public port")
 	return cmd
 }
 

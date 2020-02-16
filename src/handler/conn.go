@@ -14,8 +14,6 @@ type PairedConn struct {
 	OnClose   func()
 }
 
-type Pairs map[string]*PairedConn
-
 type Token int
 
 type ServiceUser struct {

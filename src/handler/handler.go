@@ -12,14 +12,12 @@ import (
 
 type Handler struct {
 	host    string
-	clients map[string]*Client
-	mu      sync.Mutex
+	clients sync.Map
 }
 
 func New(host string) *Handler {
 	h := &Handler{
-		host:    host,
-		clients: map[string]*Client{},
+		host: host,
 	}
 	return h
 }
@@ -34,9 +32,7 @@ func (h *Handler) CreateClient(req *api.CreateClientRequest, svr api.ControlServ
 		return err
 	}
 
-	h.mu.Lock()
-	h.clients[uid] = c
-	h.mu.Unlock()
+	h.clients.Store(uid, c)
 	c.Start()
 	resp := &api.Client{
 		Name:            "",
@@ -64,9 +60,7 @@ func (h *Handler) CreateClient(req *api.CreateClientRequest, svr api.ControlServ
 			}
 		case <-ctx.Done():
 			c.Close()
-			h.mu.Lock()
-			defer h.mu.Unlock()
-			delete(h.clients, c.name)
+			h.clients.Delete(c.name)
 			return nil
 		}
 	}
@@ -74,37 +68,41 @@ func (h *Handler) CreateClient(req *api.CreateClientRequest, svr api.ControlServ
 
 func (h *Handler) ListClients(ctx context.Context, req *api.ListClientsRequest) (*api.ListClientsResponse, error) {
 	cs := []*api.Client{}
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	for _, c := range h.clients {
-		c := &api.Client{
+	var count int32 = 0
+	h.clients.Range(func(k, v interface{}) bool {
+		c := v.(*Client)
+		count += 1
+		cc := &api.Client{
 			Name:            c.name,
 			DisplayName:     c.displayName,
 			InternalAddress: c.IntAddr(),
 			PublicAddress:   c.PubAddr(),
 			SharePublicAddr: c.sharePub,
 		}
-		cs = append(cs, c)
-	}
-	length := int32(len(h.clients))
+		cs = append(cs, cc)
+		return true
+	})
 	return &api.ListClientsResponse{
-		TotalCount: length,
+		TotalCount: count,
 		Clients:    cs,
 	}, nil
 }
 
 func (h *Handler) ListBackendServiceUsers(ctx context.Context, req *api.ListBackendServiceUsersRequest) (*api.ListBackendServiceUsersResponse, error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
 	us := []*api.BackendServiceUser{}
-	for _, p := range h.clients[req.Parent].connPairs {
+	var count int32 = 0
+	iClient, _ := h.clients.Load(req.Parent)
+	iClient.(*Client).connPairs.Range(func(k, v interface{}) bool {
+		p := v.(*PairedConn)
 		u := &api.BackendServiceUser{
 			UserAddr: p.SRC.RemoteAddr().String(),
 		}
 		us = append(us, u)
-	}
+		count += 1
+		return true
+	})
 	return &api.ListBackendServiceUsersResponse{
-		TotalCount: int32(len(h.clients[req.Parent].connPairs)),
+		TotalCount: count,
 		Users:      us,
 	}, nil
 }

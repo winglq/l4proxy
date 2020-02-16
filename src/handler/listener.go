@@ -40,8 +40,7 @@ func (sl *SharedListener) decRef() int64 {
 	return atomic.AddInt64(&sl.refCount, -1)
 }
 
-var ls = map[string]*SharedListener{}
-var mtx sync.Mutex
+var ls = sync.Map{}
 
 func Listen(network, address string, onClose func()) (net.Listener, error) {
 	_, port, err := net.SplitHostPort(address)
@@ -51,11 +50,11 @@ func Listen(network, address string, onClose func()) (net.Listener, error) {
 	if port == "0" {
 		return net.Listen(network, address)
 	}
-	mtx.Lock()
-	defer mtx.Unlock()
 	k := key(network, address)
-	l, ok := ls[k]
+	il, ok := ls.Load(k)
+	var l *SharedListener
 	if ok {
+		l = il.(*SharedListener)
 		l.incRef()
 		return l, nil
 	}
@@ -68,11 +67,9 @@ func Listen(network, address string, onClose func()) (net.Listener, error) {
 		refCount: 1,
 		onClose: func() {
 			onClose()
-			mtx.Lock()
-			defer mtx.Unlock()
-			delete(ls, k)
+			ls.Delete(k)
 		},
 	}
-	ls[k] = sl
+	ls.Store(k, sl)
 	return sl, nil
 }

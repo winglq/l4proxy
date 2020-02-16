@@ -1,12 +1,15 @@
 package handler
 
 import (
+	"fmt"
 	"net"
 	"strings"
 	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
+
+var cs = sync.Map{}
 
 type Client struct {
 	name               string
@@ -15,7 +18,7 @@ type Client struct {
 	pubPort            string
 	intPort            string
 	host               string
-	connPairs          Pairs
+	connPairs          sync.Map
 	intConnCH          chan net.Conn
 	pubConnCH          chan net.Conn
 	done               chan struct{}
@@ -27,7 +30,6 @@ func NewClient(name, displayName, host, pubPort, intPort string, sharePub bool) 
 	c := &Client{
 		name:               name,
 		displayName:        displayName,
-		connPairs:          Pairs{},
 		pubPort:            pubPort,
 		intPort:            intPort,
 		host:               host,
@@ -39,7 +41,7 @@ func NewClient(name, displayName, host, pubPort, intPort string, sharePub bool) 
 	return c, c.init()
 }
 func (c *Client) log() *log.Entry {
-	return log.NewEntry(log.StandardLogger()).WithField("client", c.name)
+	return log.WithField("client", c.name)
 }
 
 func (c *Client) PubAddr() string {
@@ -50,23 +52,24 @@ func (c *Client) IntAddr() string {
 	return net.JoinHostPort(c.host, c.intPort)
 }
 
-var cs = map[net.Listener]chan net.Conn{}
-var mu sync.Mutex
+func (c *Client) PubBindAddr() string {
+	return net.JoinHostPort("", c.pubPort)
+}
+
+func (c *Client) IntBindAddr() string {
+	return net.JoinHostPort("", c.intPort)
+}
 
 func key(network, address string) string {
 	return strings.Join([]string{network, address}, "_")
 }
 
 func (c *Client) listenAndAccept(addr string, share bool) (string, chan net.Conn, error) {
-	mu.Lock()
-	defer mu.Unlock()
 	var ltn net.Listener
 	var err error
 	if share {
 		ltn, err = Listen("tcp", addr, func() {
-			mu.Lock()
-			defer mu.Unlock()
-			delete(cs, ltn)
+			cs.Delete(ltn)
 		})
 		if err != nil {
 			return "", nil, err
@@ -78,10 +81,11 @@ func (c *Client) listenAndAccept(addr string, share bool) (string, chan net.Conn
 			ltn.Close()
 		}()
 
-		ch, ok := cs[ltn]
+		ich, ok := cs.Load(ltn)
 		if ok {
+
 			_, port, _ := net.SplitHostPort(addr)
-			return port, ch, nil
+			return port, ich.(chan net.Conn), nil
 		}
 
 	} else {
@@ -114,17 +118,17 @@ func (c *Client) listenAndAccept(addr string, share bool) (string, chan net.Conn
 	}()
 	_, port, _ := net.SplitHostPort(ltn.Addr().String())
 	if share {
-		cs[ltn] = ch
+		cs.Store(ltn, ch)
 	}
 	return port, ch, nil
 }
 
 func (c *Client) init() (err error) {
-	c.intPort, c.intConnCH, err = c.listenAndAccept(c.IntAddr(), false)
+	c.intPort, c.intConnCH, err = c.listenAndAccept(c.IntBindAddr(), false)
 	if err != nil {
 		return
 	}
-	c.pubPort, c.pubConnCH, err = c.listenAndAccept(c.PubAddr(), c.sharePub)
+	c.pubPort, c.pubConnCH, err = c.listenAndAccept(c.PubBindAddr(), c.sharePub)
 	if err != nil {
 		return
 	}
@@ -150,9 +154,9 @@ func (c *Client) run() {
 				return
 			}
 			token = token + 1
-			c.connPairs[token.String()] = &PairedConn{
+			c.connPairs.Store(token.String(), &PairedConn{
 				SRC: conn,
-			}
+			})
 			c.NewPubConnNotifyCH <- token
 			c.log().Debugf("new backend service user from %s", conn.RemoteAddr())
 		case conn := <-c.intConnCH:
@@ -164,10 +168,14 @@ func (c *Client) run() {
 			if err != nil {
 				panic(err)
 			}
-			pair := c.connPairs[string(buf)]
+			ipair, ok := c.connPairs.Load(string(buf))
+			if !ok {
+				panic(fmt.Sprintf("%s does not exist in map", string(buf)))
+			}
+			pair := ipair.(*PairedConn)
 			pair.DEST = conn
 			pair.OnClose = func() {
-				delete(c.connPairs, string(buf))
+				c.connPairs.Delete(string(buf))
 				c.log().Debugf("backend service user %s disconnected", pair.SRC.RemoteAddr())
 			}
 			pair.Copy(&c.wg)
@@ -178,9 +186,10 @@ func (c *Client) run() {
 }
 
 func (c *Client) Close() {
-	for _, p := range c.connPairs {
-		p.Close()
-	}
+	c.connPairs.Range(func(k, v interface{}) bool {
+		v.(*PairedConn).Close()
+		return true
+	})
 	close(c.done)
 	c.wg.Wait()
 	c.log().Infof("client closed.")
