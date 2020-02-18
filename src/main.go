@@ -10,6 +10,9 @@ import (
 	"sync"
 	"time"
 
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"github.com/inhies/go-bytesize"
 	"github.com/olekukonko/tablewriter"
 	log "github.com/sirupsen/logrus"
@@ -75,7 +78,17 @@ func newServerCmd() *cobra.Command {
 				panic(err)
 			}
 			log.Printf("listen on ctl addr %s", ctlLtn.Addr())
-			grpcServer := grpc.NewServer()
+			entry := log.WithFields(log.Fields{})
+			grpc_logrus.ReplaceGrpcLogger(entry)
+			grpcServer := grpc.NewServer(
+				grpc_middleware.WithUnaryServerChain(
+					grpc_logrus.UnaryServerInterceptor(entry),
+					grpc_validator.UnaryServerInterceptor(),
+				),
+				grpc_middleware.WithStreamServerChain(
+					grpc_logrus.StreamServerInterceptor(entry),
+					grpc_validator.StreamServerInterceptor(),
+				))
 			go func() {
 				<-cSig
 				grpcServer.Stop()

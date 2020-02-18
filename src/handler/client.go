@@ -24,9 +24,10 @@ type Client struct {
 	done               chan struct{}
 	NewPubConnNotifyCH chan Token
 	wg                 sync.WaitGroup
+	logger             *log.Entry
 }
 
-func NewClient(name, displayName, host, pubPort, intPort string, sharePub bool) (*Client, error) {
+func NewClient(name, displayName, host, pubPort, intPort string, sharePub bool, l *log.Entry) (*Client, error) {
 	c := &Client{
 		name:               name,
 		displayName:        displayName,
@@ -36,12 +37,16 @@ func NewClient(name, displayName, host, pubPort, intPort string, sharePub bool) 
 		done:               make(chan struct{}),
 		NewPubConnNotifyCH: make(chan Token),
 		sharePub:           sharePub,
+		logger:             l,
 	}
 	c.log().Infof("client connected")
 	return c, c.init()
 }
 func (c *Client) log() *log.Entry {
-	return log.WithField("client", c.name)
+	if c.logger == nil {
+		return log.WithField("client", c.name)
+	}
+	return c.logger.WithField("client", c.name)
 }
 
 func (c *Client) PubAddr() string {

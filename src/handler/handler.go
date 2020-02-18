@@ -6,8 +6,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus/ctxlogrus"
 	uuid "github.com/satori/go.uuid"
 	"github.com/winglq/l4proxy/src/api"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Handler struct {
@@ -26,8 +29,9 @@ func New(host string) *Handler {
 // Whether public listener is unique depends on request parameter.
 func (h *Handler) CreateClient(req *api.CreateClientRequest, svr api.ControlService_CreateClientServer) error {
 	ctx := svr.Context()
+	log := ctxlogrus.Extract(ctx)
 	uid := strings.Replace(uuid.NewV1().String(), "-", "", -1)
-	c, err := NewClient(uid, req.DisplayName, h.host, fmt.Sprintf("%d", req.PublicPort), fmt.Sprintf("%d", req.InternalPort), req.SharePublicAddr)
+	c, err := NewClient(uid, req.DisplayName, h.host, fmt.Sprintf("%d", req.PublicPort), fmt.Sprintf("%d", req.InternalPort), req.SharePublicAddr, log)
 	if err != nil {
 		return err
 	}
@@ -91,7 +95,10 @@ func (h *Handler) ListClients(ctx context.Context, req *api.ListClientsRequest) 
 func (h *Handler) ListBackendServiceUsers(ctx context.Context, req *api.ListBackendServiceUsersRequest) (*api.ListBackendServiceUsersResponse, error) {
 	us := []*api.BackendServiceUser{}
 	var count int32 = 0
-	iClient, _ := h.clients.Load(req.Parent)
+	iClient, ok := h.clients.Load(req.Parent)
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "%s does not found", req.Parent)
+	}
 	iClient.(*Client).connPairs.Range(func(k, v interface{}) bool {
 		p := v.(*PairedConn)
 		u := &api.BackendServiceUser{
