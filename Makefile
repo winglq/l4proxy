@@ -8,4 +8,7 @@ protoc:
 win:
 	GOOS=windows go build -o l4proxy.exe src/main.go
 
+rasp:
+	GOOS=linux GOARCH=arm GOARM=7 go build -o l4proxy_rasp src/main.go
+
 .phony: l4proxy l4proxy.exe

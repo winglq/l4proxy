@@ -32,11 +32,16 @@ var pool = sync.Pool{
 }
 
 // copyBuffer is copied from golang's std lib.
-func copyBuffer(src, dst net.Conn, buf []byte, speedCH chan<- int) (written int64, err error) {
+func copyBuffer(src, dst net.Conn, buf []byte, speedCH chan<- int, done <-chan struct{}) (written int64, err error) {
 	if buf != nil && len(buf) == 0 {
 		panic("empty buffer in io.CopyBuffer")
 	}
 	for {
+		select {
+		case <-done:
+			return
+		default:
+		}
 		nr, er := src.Read(buf)
 		if nr > 0 {
 			nw, ew := dst.Write(buf[0:nr])
@@ -128,7 +133,7 @@ func (pc *PairedConn) copy(src, dst net.Conn, ch chan<- int) (int64, error) {
 	buf := pool.Get().([]byte)
 	defer pool.Put(buf)
 
-	return copyBuffer(src, dst, buf, ch)
+	return copyBuffer(src, dst, buf, ch, pc.done)
 }
 
 func (pc *PairedConn) Copy() {

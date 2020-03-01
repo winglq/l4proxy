@@ -163,15 +163,13 @@ func newClientCmd() *cobra.Command {
 				if err != nil {
 					if grpc.Code(err) == codes.Canceled {
 						break
-					} else if grpc.Code(err) == codes.Unavailable {
+					} else {
 						log.Errorf("recv messsage failed: %v", err)
 						conClient, err = createClientFunc()
 						if err != nil && grpc.Code(err) == codes.Canceled {
 							return
 						}
 						continue
-					} else {
-						panic(err)
 					}
 				}
 				if resp.InternalAddress != "" {
@@ -310,7 +308,9 @@ func proxy(localAddr, remoteAddr string) {
 		log.Printf("connected from %s", cc.RemoteAddr())
 		p := handler.NewPairedConn(cc, c)
 		p.Copy()
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			<-cSig
 			p.Close()
 		}()
