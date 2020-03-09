@@ -19,6 +19,8 @@ message CreateClientRequest {
   int32  internal_port = 2;
   int32  public_port = 3;
   bool   share_public_addr = 4;
+  string protocol = 5;
+  int32  backend_port = 6;
 }
 
 message ListClientsRequest {

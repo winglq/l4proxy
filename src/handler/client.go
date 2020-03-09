@@ -25,6 +25,9 @@ type Client struct {
 	NewPubConnNotifyCH chan Token
 	wg                 sync.WaitGroup
 	logger             *log.Entry
+	backendHost        string
+	backendPort        string
+	protocol           string
 }
 
 func NewClient(name, displayName, host, pubPort, intPort string, sharePub bool, l *log.Entry) (*Client, error) {
@@ -42,6 +45,13 @@ func NewClient(name, displayName, host, pubPort, intPort string, sharePub bool, 
 	c.log().Infof("client connected")
 	return c, c.init()
 }
+
+func (c *Client) SetSTUNInfo(host, backendPort, protocol string) {
+	c.backendHost = host
+	c.backendPort = backendPort
+	c.protocol = protocol
+}
+
 func (c *Client) log() *log.Entry {
 	if c.logger == nil {
 		return log.WithField("client", c.name)
@@ -50,10 +60,16 @@ func (c *Client) log() *log.Entry {
 }
 
 func (c *Client) PubAddr() string {
+	if c.backendHost != "" {
+		return net.JoinHostPort(c.backendHost, c.backendPort)
+	}
 	return net.JoinHostPort(c.host, c.pubPort)
 }
 
 func (c *Client) IntAddr() string {
+	if c.backendHost != "" {
+		return ""
+	}
 	return net.JoinHostPort(c.host, c.intPort)
 }
 

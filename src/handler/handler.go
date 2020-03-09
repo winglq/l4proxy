@@ -14,6 +14,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/winglq/l4proxy/src/api"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
@@ -40,17 +41,51 @@ func (h *Handler) CreateClient(req *api.CreateClientRequest, svr api.ControlServ
 		return err
 	}
 
-	h.clients.Store(uid, c)
-	c.Start()
-	resp := &api.Client{
-		Name:            "",
-		InternalAddress: "",
-		DisplayName:     "",
-		PublicAddress:   c.PubAddr(),
-		SharePublicAddr: req.SharePublicAddr,
+	pr, ok := peer.FromContext(ctx)
+	if !ok {
+		panic("no peer info in context")
 	}
-	if err := svr.Send(resp); err != nil {
+	host, _, err := net.SplitHostPort(pr.Addr.String())
+	if err != nil {
 		panic(err)
+	}
+
+	stun := func() bool {
+		if req.Protocol != "tcp" {
+			return false
+		}
+		addr := net.JoinHostPort(host, fmt.Sprintf("%d", req.BackendPort))
+		stunConn, err := net.DialTimeout("tcp", addr, time.Second*5)
+		if err != nil {
+			return false
+		}
+		stunConn.Close()
+		resp := &api.Client{
+			Name:            "",
+			InternalAddress: "",
+			PublicAddress:   addr,
+			DisplayName:     "",
+		}
+		if err := svr.Send(resp); err != nil {
+			panic(err)
+		}
+		c.SetSTUNInfo(host, fmt.Sprintf("%d", req.BackendPort), req.Protocol)
+		h.clients.Store(uid, c)
+		return true
+	}
+	if !stun() {
+		h.clients.Store(uid, c)
+		c.Start()
+		resp := &api.Client{
+			Name:            "",
+			InternalAddress: "",
+			DisplayName:     "",
+			PublicAddress:   c.PubAddr(),
+			SharePublicAddr: req.SharePublicAddr,
+		}
+		if err := svr.Send(resp); err != nil {
+			panic(err)
+		}
 	}
 
 	for {

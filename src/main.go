@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,16 +20,18 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/winglq/l4proxy/src/api"
 	"github.com/winglq/l4proxy/src/handler"
+	"github.com/winglq/l4proxy/src/port_map"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
 
 type ClientOptions struct {
-	svrAddr  string
-	pubPort  int32
-	intPort  int32
-	name     string
-	sharePub bool
+	svrAddr     string
+	pubPort     int32
+	intPort     int32
+	name        string
+	sharePub    bool
+	backendPort int32
 }
 
 type ServerOptions struct {
@@ -129,6 +132,17 @@ func newClientCmd() *cobra.Command {
 				c.Close()
 			}()
 			client := api.NewControlServiceClient(c)
+			backendPort := opt.c.backendPort
+			var pt int64
+			if backendPort == 0 {
+				pt, err = strconv.ParseInt(port, 10, 32)
+				if err != nil {
+					log.Fatalf("backend port format error")
+				}
+				backendPort = int32(pt)
+			}
+			mapper := port_map.NewDummyPortMapper()
+			mapper.MapPort("", int32(pt), "tcp", backendPort)
 			createClientFunc := func() (api.ControlService_CreateClientClient, error) {
 				for {
 					c, err := client.CreateClient(context.TODO(), &api.CreateClientRequest{
@@ -136,6 +150,8 @@ func newClientCmd() *cobra.Command {
 						PublicPort:      opt.c.pubPort,
 						InternalPort:    opt.c.intPort,
 						SharePublicAddr: opt.c.sharePub,
+						Protocol:        "tcp",
+						BackendPort:     backendPort,
 					})
 					if err == nil {
 						return c, nil
@@ -167,6 +183,7 @@ func newClientCmd() *cobra.Command {
 						log.Errorf("recv messsage failed: %v", err)
 						conClient, err = createClientFunc()
 						if err != nil && grpc.Code(err) == codes.Canceled {
+							mapper.UnmapPort("tcp", backendPort)
 							return
 						}
 						continue
@@ -200,6 +217,7 @@ func newClientCmd() *cobra.Command {
 	cmd.Flags().Int32Var(&opt.c.intPort, "int_port", 0, "internal port used to listen client connection.")
 	cmd.Flags().StringVar(&opt.c.name, "client_name", "unknown", "client name")
 	cmd.Flags().BoolVar(&opt.c.sharePub, "share_public_port", false, "share public port for different clients")
+	cmd.Flags().Int32Var(&opt.c.backendPort, "backend_port", 0, "stun port used to be connected by service users")
 	list := newListClientsCmd()
 	cmd.AddCommand(list)
 	return &cmd
