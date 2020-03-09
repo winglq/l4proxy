@@ -3,6 +3,7 @@ module github.com/winglq/l4proxy
 go 1.13
 
 require (
+	github.com/elazarl/goproxy v0.0.0-20200220113713-29f9e0ba54ea
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0

@@ -3,9 +3,13 @@ package handler
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/elazarl/goproxy"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus/ctxlogrus"
 	uuid "github.com/satori/go.uuid"
 	"github.com/winglq/l4proxy/src/api"
@@ -114,4 +118,49 @@ func (h *Handler) ListBackendServiceUsers(ctx context.Context, req *api.ListBack
 		TotalCount: count,
 		Users:      us,
 	}, nil
+}
+
+type InternalService struct {
+	PublicPort  int32
+	Name        string
+	Close       func()
+	ServiceName string
+}
+
+var services sync.Map
+
+func init() {
+	services = sync.Map{}
+}
+func (h *Handler) StartInternalService(ctx context.Context, req *api.StartInternalServiceRequest) (*api.InternalService, error) {
+	if req.ServiceName == "l7forwarder" {
+		proxy := goproxy.NewProxyHttpServer()
+		var srv *http.Server
+		go func() {
+			l, err := net.Listen("tcp", fmt.Sprintf(":%d", req.PubPort))
+			if err != nil {
+				panic(err)
+			}
+			srv = &http.Server{Handler: proxy}
+			srv.Serve(l)
+		}()
+		uid := strings.Replace(uuid.NewV1().String(), "-", "", -1)
+		services.Store(uid, &InternalService{
+			PublicPort:  req.PubPort,
+			Name:        uid,
+			ServiceName: req.ServiceName,
+			Close: func() {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+				defer cancel()
+				err := srv.Shutdown(ctx)
+				if err != nil {
+					panic(err)
+				}
+			},
+		})
+		return &api.InternalService{
+			Name: uid,
+		}, nil
+	}
+	return nil, status.Errorf(codes.NotFound, "service %s does not found", req.ServiceName)
 }

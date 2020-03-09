@@ -54,3 +54,9 @@ func (this *Client) Validate() error {
 func (this *BackendServiceUser) Validate() error {
 	return nil
 }
+func (this *StartInternalServiceRequest) Validate() error {
+	return nil
+}
+func (this *InternalService) Validate() error {
+	return nil
+}

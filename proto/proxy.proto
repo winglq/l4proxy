@@ -10,6 +10,8 @@ service ControlService {
   rpc CreateClient(CreateClientRequest) returns (stream Client) {}
   rpc ListClients(ListClientsRequest) returns (ListClientsResponse) {}
   rpc ListBackendServiceUsers(ListBackendServiceUsersRequest) returns (ListBackendServiceUsersResponse) {}
+
+  rpc StartInternalService(StartInternalServiceRequest) returns (InternalService) {}
 }
 
 message CreateClientRequest {
@@ -54,4 +56,13 @@ message BackendServiceUser {
   string user_addr = 1;
   double speed_in = 2;
   double speed_out = 3;
+}
+
+message StartInternalServiceRequest {
+  string service_name = 1;
+  int32 pub_port = 2;
+}
+
+message InternalService {
+  string name = 1;
 }
