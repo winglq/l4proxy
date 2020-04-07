@@ -12,6 +12,7 @@ service ControlService {
   rpc ListBackendServiceUsers(ListBackendServiceUsersRequest) returns (ListBackendServiceUsersResponse) {}
 
   rpc StartInternalService(StartInternalServiceRequest) returns (InternalService) {}
+  rpc ListInternalService(ListInternalServiceRequest) returns (ListInternalServiceResponse) {}
 }
 
 message CreateClientRequest {
@@ -65,6 +66,18 @@ message StartInternalServiceRequest {
   int32 pub_port = 2;
 }
 
+message ListInternalServiceRequest {
+  string page_token = 1;
+}
+
+message ListInternalServiceResponse {
+  repeated InternalService services = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
 message InternalService {
   string name = 1;
+  string addr = 2;
+  string service_name = 3;
 }

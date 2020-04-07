@@ -40,6 +40,7 @@ git clone https://github.com/winglq/l4proxy
 cd l4proxy
 make bin # linux
 make win # windows
+make rasp # raspberry
 ```
 
 ## Usage
@@ -57,7 +58,8 @@ l4proxy client --svr_addr 1.2.3.4 127.0.0.1 22
 ```
 
 Use --int_port and --pub_port in l4proxy client to specify the listen port on l4proxy server, make sure a tcp rule is added to the firewall to allow connection on these ports.
-If you want to connect backend user and backend directly, you --backend_port to specify the port that was manually mapped on your home router. l4proxy server will try to connect the port directly if connection is established, the backend's public network address and backend port is returned to client, otherwise the server fallback to a proxy server.
+
+If you want to connect backend user and backend directly, use --backend_port to specify the port that was manually mapped on your home router. l4proxy server will try to connect the port directly if connection is established, the backend's public network address and backend port is returned to client, otherwise the server fallback to a proxy server.
 
 For more detail usage use `l4proxy -h`.
 

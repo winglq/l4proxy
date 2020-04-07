@@ -12,6 +12,7 @@ import (
 	"github.com/elazarl/goproxy"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus/ctxlogrus"
 	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 	"github.com/winglq/l4proxy/src/api"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
@@ -19,8 +20,9 @@ import (
 )
 
 type Handler struct {
-	host    string
-	clients sync.Map
+	host     string
+	clients  sync.Map
+	services sync.Map
 }
 
 func New(host string) *Handler {
@@ -160,27 +162,28 @@ type InternalService struct {
 	Name        string
 	Close       func()
 	ServiceName string
+	Addr        string
 }
 
-var services sync.Map
-
-func init() {
-	services = sync.Map{}
-}
 func (h *Handler) StartInternalService(ctx context.Context, req *api.StartInternalServiceRequest) (*api.InternalService, error) {
 	if req.ServiceName == "l7forwarder" {
 		proxy := goproxy.NewProxyHttpServer()
+		log := ctxlogrus.Extract(ctx)
+		proxy.Logger = log.WithField("internal service", "l7forwarder")
 		var srv *http.Server
+		l, err := net.Listen("tcp", fmt.Sprintf(":%d", req.PubPort))
+		if err != nil {
+			panic(err)
+		}
+		addr := l.Addr().String()
+		_, port, _ := net.SplitHostPort(addr)
+
 		go func() {
-			l, err := net.Listen("tcp", fmt.Sprintf(":%d", req.PubPort))
-			if err != nil {
-				panic(err)
-			}
 			srv = &http.Server{Handler: proxy}
 			srv.Serve(l)
 		}()
 		uid := strings.Replace(uuid.NewV1().String(), "-", "", -1)
-		services.Store(uid, &InternalService{
+		h.services.Store(uid, &InternalService{
 			PublicPort:  req.PubPort,
 			Name:        uid,
 			ServiceName: req.ServiceName,
@@ -191,11 +194,43 @@ func (h *Handler) StartInternalService(ctx context.Context, req *api.StartIntern
 				if err != nil {
 					panic(err)
 				}
+				log.Info("l7 forwarder service closed")
 			},
+			Addr: net.JoinHostPort(h.host, port),
 		})
 		return &api.InternalService{
-			Name: uid,
+			Name:        uid,
+			Addr:        net.JoinHostPort(h.host, port),
+			ServiceName: req.ServiceName,
 		}, nil
 	}
 	return nil, status.Errorf(codes.NotFound, "service %s does not found", req.ServiceName)
+}
+
+func (h *Handler) ListInternalService(ctx context.Context, req *api.ListInternalServiceRequest) (*api.ListInternalServiceResponse, error) {
+	svrs := []*api.InternalService{}
+	var i int32
+	h.services.Range(func(k, v interface{}) bool {
+		svr := &api.InternalService{
+			Name:        v.(*InternalService).Name,
+			Addr:        v.(*InternalService).Addr,
+			ServiceName: v.(*InternalService).ServiceName,
+		}
+		svrs = append(svrs, svr)
+		i++
+		return true
+	})
+	return &api.ListInternalServiceResponse{
+		Services:   svrs,
+		TotalCount: i,
+	}, nil
+
+}
+
+func (h *Handler) Close() {
+	h.services.Range(func(k, v interface{}) bool {
+		v.(*InternalService).Close()
+		return true
+	})
+	log.Info("handler closed")
 }

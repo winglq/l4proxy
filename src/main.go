@@ -57,7 +57,7 @@ func newLANCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "lan [host] [port]",
 		Run: func(cmd *cobra.Command, args []string) {
-			port := pubPort
+			port := "22"
 			host := "127.0.0.1"
 			if len(args) > 0 {
 				host = args[0]
@@ -65,7 +65,7 @@ func newLANCmd() *cobra.Command {
 			if len(args) > 1 {
 				port = args[1]
 			}
-			proxy(":222", fmt.Sprintf("%s:%s", host, port))
+			proxy(":"+pubPort, fmt.Sprintf("%s:%s", host, port))
 		},
 	}
 	cmd.Flags().StringVar(&pubPort, "pub_port", pubPort, "public port")
@@ -97,6 +97,7 @@ func newServerCmd() *cobra.Command {
 				grpcServer.Stop()
 			}()
 			h := handler.New(opt.s.host)
+			defer h.Close()
 			api.RegisterControlServiceServer(grpcServer, h)
 			err = grpcServer.Serve(ctlLtn)
 			if err != nil {
@@ -220,6 +221,7 @@ func newClientCmd() *cobra.Command {
 	cmd.Flags().Int32Var(&opt.c.backendPort, "backend_port", 0, "stun port used to be connected by service users")
 	list := newListClientsCmd()
 	cmd.AddCommand(list)
+	cmd.AddCommand(newForwarderCmd())
 	return &cmd
 }
 
@@ -262,15 +264,14 @@ func newListClientUsersCmd() *cobra.Command {
 			}
 			c, err := grpc.Dial(opt.c.svrAddr, grpc.WithInsecure())
 			if err != nil {
-				panic(err)
+				log.Fatalf("failed to dial to grpc server: %v", err)
 			}
 			client := api.NewControlServiceClient(c)
 			resp, err := client.ListBackendServiceUsers(context.TODO(), &api.ListBackendServiceUsersRequest{
 				Parent: parent,
 			})
 			if err != nil {
-				fmt.Printf("list clients users failed: %v", err)
-				os.Exit(1)
+				log.Fatalf("list clients users failed: %v", err)
 			}
 			table := tablewriter.NewWriter(os.Stdout)
 			table.SetHeader([]string{"User Address", "Speed In", "Speed Out"})
@@ -283,6 +284,30 @@ func newListClientUsersCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&parent, "client_name", "", "client unique name.")
 	return &cmd
+}
+
+func newForwarderCmd() *cobra.Command {
+	var pubPort int32
+	cmd := &cobra.Command{
+		Use: "forwarder",
+		Run: func(cmd *cobra.Command, args []string) {
+			c, err := grpc.Dial(opt.c.svrAddr, grpc.WithInsecure())
+			if err != nil {
+				log.Fatalf("failed to dial to grpc server: %v", err)
+			}
+			client := api.NewControlServiceClient(c)
+			resp, err := client.StartInternalService(context.TODO(), &api.StartInternalServiceRequest{
+				ServiceName: "l7forwarder",
+				PubPort:     pubPort,
+			})
+			if err != nil {
+				log.Fatalf("failed to start forwarder service: %v", err)
+			}
+			fmt.Printf("new forwarder %s(%s) created\n", resp.Name, resp.Addr)
+		},
+	}
+	cmd.Flags().Int32Var(&pubPort, "pub_port", 0, "public port for the forwarder")
+	return cmd
 }
 
 func newCmd() *cobra.Command {
