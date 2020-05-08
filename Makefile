@@ -1,6 +1,7 @@
 GOPATH = $(shell go env GOPATH)
 bin:
 	go build -o l4proxy src/main.go
+	go build -o redirect src/redirect/main.go
 
 protoc:
 	protoc --govalidators_out=$(GOPATH)/src -I$(GOPATH)/src/github.com/mwitkow --go_out=plugins=grpc:$(GOPATH)/src -I. proto/proxy.proto

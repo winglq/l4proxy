@@ -8,6 +8,7 @@ require (
 	github.com/google/go-cmp v0.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/inhies/go-bytesize v0.0.0-20151001220322-5990f52c6ad6
+	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.3.0
 	github.com/mwitkow/go-proto-validators v0.3.0
 	github.com/olekukonko/tablewriter v0.0.4
