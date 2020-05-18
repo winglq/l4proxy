@@ -69,7 +69,7 @@ func (h *Handler) CreateClient(req *api.CreateClientRequest, svr api.ControlServ
 			DisplayName:     "",
 		}
 		if err := svr.Send(resp); err != nil {
-			panic(err)
+			return false
 		}
 		c.SetSTUNInfo(host, fmt.Sprintf("%d", req.BackendPort), req.Protocol)
 		h.clients.Store(uid, c)
@@ -86,7 +86,7 @@ func (h *Handler) CreateClient(req *api.CreateClientRequest, svr api.ControlServ
 			SharePublicAddr: req.SharePublicAddr,
 		}
 		if err := svr.Send(resp); err != nil {
-			panic(err)
+			return err
 		}
 	}
 
@@ -101,7 +101,7 @@ func (h *Handler) CreateClient(req *api.CreateClientRequest, svr api.ControlServ
 				DisplayName:     req.DisplayName,
 			}
 			if err := svr.Send(resp); err != nil {
-				panic(err)
+				return err
 			}
 		case <-ctx.Done():
 			c.Close()

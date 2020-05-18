@@ -48,10 +48,15 @@ type Options struct {
 
 var opt Options
 var cSig = make(chan os.Signal)
+var done = make(chan struct{})
 
 func init() {
 	signal.Notify(cSig, os.Interrupt)
 	log.SetLevel(log.DebugLevel)
+	go func() {
+		<-cSig
+		close(done)
+	}()
 }
 
 func newLANCmd() *cobra.Command {
@@ -95,7 +100,7 @@ func newServerCmd() *cobra.Command {
 					grpc_validator.StreamServerInterceptor(),
 				))
 			go func() {
-				<-cSig
+				<-done
 				grpcServer.Stop()
 			}()
 			h := handler.New(opt.s.host)
@@ -154,7 +159,7 @@ func createRunFunc(onNewConn func(resp *api.Client, host, port string) *handler.
 			panic(err)
 		}
 		go func() {
-			<-cSig
+			<-done
 			c.Close()
 		}()
 		client := api.NewControlServiceClient(c)
@@ -244,6 +249,8 @@ func dailToBackend(resp *api.Client, host, port string) *handler.PairedConn {
 type ForwarderListener struct {
 	connCH chan net.Conn
 	done   chan struct{}
+	closed bool
+	mu     sync.Mutex
 }
 
 func ForwarderListen() net.Listener {
@@ -254,17 +261,26 @@ func ForwarderListen() net.Listener {
 }
 
 func (fl *ForwarderListener) Accept() (net.Conn, error) {
+	fl.mu.Lock()
+	if fl.closed {
+		fl.mu.Unlock()
+		return nil, fmt.Errorf("closed")
+	}
+	fl.mu.Unlock()
 	select {
 	case c := <-fl.connCH:
 		return c, nil
 	case <-fl.done:
-		return nil, nil
+		return nil, fmt.Errorf("closed")
 
 	}
 }
 
 func (fl *ForwarderListener) Close() error {
 	close(fl.done)
+	fl.mu.Lock()
+	fl.closed = true
+	fl.mu.Unlock()
 	return nil
 }
 
@@ -396,7 +412,7 @@ func newForwarderBackendCmd() *cobra.Command {
 				srv.Serve(l)
 			}()
 			go func() {
-				<-cSig
+				<-done
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 				defer cancel()
 				err := srv.Shutdown(ctx)
@@ -410,6 +426,10 @@ func newForwarderBackendCmd() *cobra.Command {
 			run(cmd, args)
 		},
 	}
+	cmd.Flags().Int32Var(&opt.c.pubPort, "pub_port", 0, "public port for this client.")
+	cmd.Flags().Int32Var(&opt.c.intPort, "int_port", 0, "internal port used to listen client connection.")
+	cmd.Flags().StringVar(&opt.c.name, "client_name", "unknown", "client name")
+	cmd.Flags().BoolVar(&opt.c.sharePub, "share_public_port", false, "share public port for different clients")
 	return cmd
 }
 
@@ -433,7 +453,7 @@ func proxy(localAddr, remoteAddr string) {
 		panic(err)
 	}
 	go func() {
-		<-cSig
+		<-done
 		l.Close()
 	}()
 	log.Printf("listen on %s", l.Addr())
@@ -459,7 +479,7 @@ func proxy(localAddr, remoteAddr string) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			<-cSig
+			<-done
 			p.Close()
 		}()
 	}
