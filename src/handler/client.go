@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -189,7 +188,9 @@ func (c *Client) run() {
 			}
 			ipair, ok := c.connPairs.Load(string(buf))
 			if !ok {
-				panic(fmt.Sprintf("%s does not exist in map", string(buf)))
+				c.log().Warnf("%s does not exist in map", string(buf))
+				conn.Close()
+				continue
 			}
 			pair := ipair.(*PairedConn)
 			pair.DEST = conn

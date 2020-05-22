@@ -4,49 +4,29 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/elazarl/goproxy"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_logrus "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
-	"github.com/inhies/go-bytesize"
-	"github.com/olekukonko/tablewriter"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/winglq/l4proxy/src/api"
+	"github.com/winglq/l4proxy/src/client/cmd"
+	"github.com/winglq/l4proxy/src/client/forwarder"
 	"github.com/winglq/l4proxy/src/handler"
-	"github.com/winglq/l4proxy/src/port_map"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 )
-
-type ClientOptions struct {
-	svrAddr     string
-	pubPort     int32
-	intPort     int32
-	name        string
-	sharePub    bool
-	backendPort int32
-}
 
 type ServerOptions struct {
 	ctlAddr string
 	host    string
 }
 
-type Options struct {
-	s ServerOptions
-	c ClientOptions
-}
-
-var opt Options
+var opt ServerOptions
 var cSig = make(chan os.Signal)
 var done = make(chan struct{})
 
@@ -56,6 +36,8 @@ func init() {
 	go func() {
 		<-cSig
 		close(done)
+		cmd.Close()
+		forwarder.Close()
 	}()
 }
 
@@ -83,7 +65,7 @@ func newServerCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "server",
 		Run: func(cmd *cobra.Command, args []string) {
-			ctlLtn, err := net.Listen("tcp", opt.s.ctlAddr)
+			ctlLtn, err := net.Listen("tcp", opt.ctlAddr)
 			if err != nil {
 				panic(err)
 			}
@@ -103,7 +85,7 @@ func newServerCmd() *cobra.Command {
 				<-done
 				grpcServer.Stop()
 			}()
-			h := handler.New(opt.s.host)
+			h := handler.New(opt.host)
 			defer h.Close()
 			api.RegisterControlServiceServer(grpcServer, h)
 			err = grpcServer.Serve(ctlLtn)
@@ -113,264 +95,9 @@ func newServerCmd() *cobra.Command {
 
 		},
 	}
-	cmd.Flags().StringVar(&opt.s.ctlAddr, "ctl_addr", ":2222", "server address")
-	cmd.Flags().StringVar(&opt.s.host, "host", "127.0.0.1", "public host ip address or hostname")
+	cmd.Flags().StringVar(&opt.ctlAddr, "ctl_addr", ":2222", "server address")
+	cmd.Flags().StringVar(&opt.host, "host", "127.0.0.1", "public host ip address or hostname")
 	return cmd
-}
-
-func createClient(client api.ControlServiceClient, opt *Options, backendPort int32) (api.ControlService_CreateClientClient, error) {
-	for {
-		c, err := client.CreateClient(context.TODO(), &api.CreateClientRequest{
-			DisplayName:     opt.c.name,
-			PublicPort:      opt.c.pubPort,
-			InternalPort:    opt.c.intPort,
-			SharePublicAddr: opt.c.sharePub,
-			Protocol:        "tcp",
-			BackendPort:     backendPort,
-		})
-		if err == nil {
-			return c, nil
-		}
-		if grpc.Code(err) == codes.Unavailable {
-			log.Printf("reconnecting after 5 second due to err: %v", err)
-			time.Sleep(5 * time.Second)
-			continue
-		} else if grpc.Code(err) == codes.Canceled {
-			return nil, err
-		} else if err != nil {
-			panic(err)
-		}
-	}
-
-}
-
-func createRunFunc(onNewConn func(resp *api.Client, host, port string) *handler.PairedConn) func(cmd *cobra.Command, args []string) {
-	ret := func(cmd *cobra.Command, args []string) {
-		port := "22"
-		host := "127.0.0.1"
-		if len(args) > 0 {
-			host = args[0]
-		}
-		if len(args) > 1 {
-			port = args[1]
-		}
-		c, err := grpc.Dial(opt.c.svrAddr, grpc.WithInsecure())
-		if err != nil {
-			panic(err)
-		}
-		go func() {
-			<-done
-			c.Close()
-		}()
-		client := api.NewControlServiceClient(c)
-		backendPort := opt.c.backendPort
-		var pt int64
-		if backendPort == 0 {
-			pt, err = strconv.ParseInt(port, 10, 32)
-			if err != nil {
-				log.Fatalf("backend port format error")
-			}
-			backendPort = int32(pt)
-		}
-		mapper := port_map.NewDummyPortMapper()
-		mapper.MapPort("", int32(pt), "tcp", backendPort)
-		conClient, err := createClient(client, &opt, backendPort)
-		if err != nil && grpc.Code(err) == codes.Canceled {
-			return
-		} else if err != nil {
-			panic(err)
-		}
-		for {
-			resp, err := conClient.Recv()
-			if err != nil {
-				if grpc.Code(err) == codes.Canceled {
-					break
-				} else {
-					log.Errorf("recv messsage failed: %v", err)
-					conClient, err = createClient(client, &opt, backendPort)
-					if err != nil && grpc.Code(err) == codes.Canceled {
-						mapper.UnmapPort("tcp", backendPort)
-						return
-					}
-					continue
-				}
-			}
-			if resp.InternalAddress != "" {
-				pair := onNewConn(resp, host, port)
-				if pair != nil {
-					defer pair.Close()
-				}
-			} else {
-				fmt.Printf("PUBLIC ADDRESS: %s\n", resp.PublicAddress)
-			}
-		}
-
-	}
-	return ret
-}
-
-func newClientCmd() *cobra.Command {
-	cmd := cobra.Command{
-		Use:  "client [host] [port]",
-		Args: cobra.MaximumNArgs(2),
-		Run:  createRunFunc(dailToBackend),
-	}
-	cmd.PersistentFlags().StringVar(&opt.c.svrAddr, "svr_addr", "127.0.0.1:2222", "server address.")
-	cmd.Flags().Int32Var(&opt.c.pubPort, "pub_port", 0, "public port for this client.")
-	cmd.Flags().Int32Var(&opt.c.intPort, "int_port", 0, "internal port used to listen client connection.")
-	cmd.Flags().StringVar(&opt.c.name, "client_name", "unknown", "client name")
-	cmd.Flags().BoolVar(&opt.c.sharePub, "share_public_port", false, "share public port for different clients")
-	cmd.Flags().Int32Var(&opt.c.backendPort, "backend_port", 0, "stun port used to be connected by service users")
-	list := newListClientsCmd()
-	f := newForwarderBackendCmd()
-	cmd.AddCommand(list, f)
-	return &cmd
-}
-
-func dailToBackend(resp *api.Client, host, port string) *handler.PairedConn {
-	c, err := net.Dial("tcp", resp.InternalAddress)
-	if err != nil {
-		panic(err)
-	}
-	_, err = c.Write([]byte(resp.Token))
-	if err != nil {
-		panic(err)
-	}
-	sconn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", host, port))
-	if err != nil {
-		panic(err)
-	}
-	log.Printf("connected to backend service: %s -> %s", sconn.LocalAddr(), sconn.RemoteAddr())
-	pair := handler.NewPairedConn(c, sconn)
-	pair.Copy()
-	return pair
-}
-
-type ForwarderListener struct {
-	connCH chan net.Conn
-	done   chan struct{}
-	closed bool
-	mu     sync.Mutex
-}
-
-func ForwarderListen() net.Listener {
-	return &ForwarderListener{
-		connCH: make(chan net.Conn),
-		done:   make(chan struct{}),
-	}
-}
-
-func (fl *ForwarderListener) Accept() (net.Conn, error) {
-	fl.mu.Lock()
-	if fl.closed {
-		fl.mu.Unlock()
-		return nil, fmt.Errorf("closed")
-	}
-	fl.mu.Unlock()
-	select {
-	case c := <-fl.connCH:
-		return c, nil
-	case <-fl.done:
-		return nil, fmt.Errorf("closed")
-
-	}
-}
-
-func (fl *ForwarderListener) Close() error {
-	close(fl.done)
-	fl.mu.Lock()
-	fl.closed = true
-	fl.mu.Unlock()
-	return nil
-}
-
-type FakeAddr struct {
-}
-
-func (f FakeAddr) String() string {
-	return "127.0.0.1:123"
-}
-
-func (f FakeAddr) Network() string {
-	return "tcp"
-}
-
-func (fl *ForwarderListener) Addr() net.Addr {
-	return FakeAddr{}
-}
-
-func (fl *ForwarderListener) httpForwarder(resp *api.Client, host, port string) *handler.PairedConn {
-	c, err := net.Dial("tcp", resp.InternalAddress)
-	if err != nil {
-		panic(err)
-	}
-	_, err = c.Write([]byte(resp.Token))
-	if err != nil {
-		panic(err)
-	}
-	fl.connCH <- c
-	return nil
-}
-
-func newListClientsCmd() *cobra.Command {
-	cmd := cobra.Command{
-		Use: "list",
-		Run: func(cmd *cobra.Command, args []string) {
-			c, err := grpc.Dial(opt.c.svrAddr, grpc.WithInsecure())
-			if err != nil {
-				panic(err)
-			}
-			client := api.NewControlServiceClient(c)
-			resp, err := client.ListClients(context.TODO(), &api.ListClientsRequest{})
-			if err != nil {
-				fmt.Printf("list clients failed: %v", err)
-				os.Exit(1)
-			}
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetHeader([]string{"Name", "Display Name", "Public Address", "Internal Address"})
-			for _, cl := range resp.Clients {
-				table.Append([]string{cl.Name, cl.DisplayName, cl.PublicAddress, cl.InternalAddress})
-
-			}
-			table.Render()
-		},
-	}
-	list := newListClientUsersCmd()
-	cmd.AddCommand(list)
-	return &cmd
-}
-
-func newListClientUsersCmd() *cobra.Command {
-	parent := ""
-	cmd := cobra.Command{
-		Use: "user",
-		Run: func(cmd *cobra.Command, args []string) {
-			if parent == "" {
-				fmt.Println("client_name is reqired")
-				return
-			}
-			c, err := grpc.Dial(opt.c.svrAddr, grpc.WithInsecure())
-			if err != nil {
-				log.Fatalf("failed to dial to grpc server: %v", err)
-			}
-			client := api.NewControlServiceClient(c)
-			resp, err := client.ListBackendServiceUsers(context.TODO(), &api.ListBackendServiceUsersRequest{
-				Parent: parent,
-			})
-			if err != nil {
-				log.Fatalf("list clients users failed: %v", err)
-			}
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetHeader([]string{"User Address", "Speed In", "Speed Out"})
-			for _, u := range resp.Users {
-				table.Append([]string{u.UserAddr, bytesize.New(u.SpeedIn).String(), bytesize.New(u.SpeedOut).String()})
-
-			}
-			table.Render()
-		},
-	}
-	cmd.Flags().StringVar(&parent, "client_name", "", "client unique name.")
-	return &cmd
 }
 
 func newForwarderCmd() *cobra.Command {
@@ -400,41 +127,8 @@ func newForwarderCmd() *cobra.Command {
 	return cmd
 }
 
-func newForwarderBackendCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use: "forwarder",
-		Run: func(cmd *cobra.Command, args []string) {
-			l := ForwarderListen()
-			proxy := goproxy.NewProxyHttpServer()
-			var srv *http.Server
-			go func() {
-				srv = &http.Server{Handler: proxy}
-				srv.Serve(l)
-			}()
-			go func() {
-				<-done
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-				defer cancel()
-				err := srv.Shutdown(ctx)
-				if err != nil {
-					panic(err)
-				}
-				log.Info("forwarder server closed")
-			}()
-
-			run := createRunFunc(l.(*ForwarderListener).httpForwarder)
-			run(cmd, args)
-		},
-	}
-	cmd.Flags().Int32Var(&opt.c.pubPort, "pub_port", 0, "public port for this client.")
-	cmd.Flags().Int32Var(&opt.c.intPort, "int_port", 0, "internal port used to listen client connection.")
-	cmd.Flags().StringVar(&opt.c.name, "client_name", "unknown", "client name")
-	cmd.Flags().BoolVar(&opt.c.sharePub, "share_public_port", false, "share public port for different clients")
-	return cmd
-}
-
 func newCmd() *cobra.Command {
-	client := newClientCmd()
+	client := cmd.NewClientCmd()
 	svr := newServerCmd()
 	forward := newForwarderCmd()
 	svr.AddCommand(forward)

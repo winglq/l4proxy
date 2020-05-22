@@ -12,4 +12,7 @@ win:
 rasp:
 	GOOS=linux GOARCH=arm GOARM=7 go build -o l4proxy_rasp src/main.go
 
+lib:
+	ANDROID_HOME=/root/Android/Sdk/ ANDROID_NDK_HOME=/root/Android/Sdk/ndk/21.0.6113669 gomobile bind -target android github.com/winglq/l4proxy/src/client/forwarder
+
 .phony: l4proxy l4proxy.exe
