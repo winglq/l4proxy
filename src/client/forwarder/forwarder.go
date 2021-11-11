@@ -92,17 +92,17 @@ func (fl *forwarderListener) Addr() net.Addr {
 	return FakeAddr{}
 }
 
-func (fl *forwarderListener) httpForwarder(resp *api.Client, host, port string) *handler.PairedConn {
+func (fl *forwarderListener) httpForwarder(resp *api.Client, host, port string) (*handler.PairedConn, error) {
 	c, err := net.Dial("tcp", resp.InternalAddress)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	_, err = c.Write([]byte(resp.Token))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	fl.connCH <- c
-	return nil
+	return nil, nil
 }
 
 func Close() {

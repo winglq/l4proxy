@@ -52,7 +52,7 @@ func createClient(client api.ControlServiceClient, opt *Options, backendPort int
 
 }
 
-func CreateRunFunc(done chan struct{}, opt *Options, onNewConn func(resp *api.Client, host, port string) *handler.PairedConn) func(cmd *cobra.Command, args []string) {
+func CreateRunFunc(done chan struct{}, opt *Options, onNewConn func(resp *api.Client, host, port string) (*handler.PairedConn, error)) func(cmd *cobra.Command, args []string) {
 	ret := func(cmd *cobra.Command, args []string) {
 		port := "22"
 		host := "127.0.0.1"
@@ -104,7 +104,10 @@ func CreateRunFunc(done chan struct{}, opt *Options, onNewConn func(resp *api.Cl
 				}
 			}
 			if resp.InternalAddress != "" {
-				pair := onNewConn(resp, host, port)
+				pair, err := onNewConn(resp, host, port)
+				if err != nil {
+					fmt.Printf("create pair failed: %v\n", err)
+				}
 				if pair != nil {
 					defer pair.Close()
 				}

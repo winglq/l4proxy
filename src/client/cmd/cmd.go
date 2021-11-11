@@ -24,7 +24,7 @@ func NewClientCmd() *cobra.Command {
 	cmd := cobra.Command{
 		Use:  "client [host] [port]",
 		Args: cobra.MaximumNArgs(2),
-		Run:  client.CreateRunFunc(done, &opt, dailToBackend),
+		Run:  client.CreateRunFunc(done, &opt, dialToBackend),
 	}
 	cmd.PersistentFlags().StringVar(&opt.SvrAddr, "svr_addr", "127.0.0.1:2222", "server address.")
 	cmd.Flags().Int32Var(&opt.PubPort, "pub_port", 0, "public port for this client.")
@@ -75,23 +75,25 @@ func newListClientUsersCmd() *cobra.Command {
 	return &cmd
 }
 
-func dailToBackend(resp *api.Client, host, port string) *handler.PairedConn {
+func dialToBackend(resp *api.Client, host, port string) (*handler.PairedConn, error) {
 	c, err := net.Dial("tcp", resp.InternalAddress)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	_, err = c.Write([]byte(resp.Token))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	sconn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", host, port))
 	if err != nil {
-		panic(err)
+		//TODO: return error code, and close c
+		c.Close()
+		return nil, err
 	}
 	log.Printf("connected to backend service: %s -> %s", sconn.LocalAddr(), sconn.RemoteAddr())
 	pair := handler.NewPairedConn(c, sconn)
 	pair.Copy()
-	return pair
+	return pair, nil
 }
 
 func newListClientsCmd() *cobra.Command {
